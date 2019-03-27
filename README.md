@@ -13,6 +13,12 @@ to needed process variables.
 The Gateway typically runs on a machine with multiple network cards,
 and the clients and the server may be on different subnets.
 
+## Dependencies
+
+The CA Gateway is using the PCAS server library and needs the PCAS module (https://github.com/epics-modules/pcas) that was unbundled from Base back in 3.16.
+
+If you use caPutLog (https://github.com/epics-modules/caPutLog), CA Gateway now requires it to be greater or equal R3.5.
+
 ## Continuous Integration
 
 The CI jobs for CA Gateway are provided by
