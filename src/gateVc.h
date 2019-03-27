@@ -242,6 +242,7 @@ private:
 	// The state of the process variable is kept in these two gdd's
 	gdd* pv_data;     // Filled in by gatePvData::getCB on activation
 	gdd* event_data;  // Filled in by gatePvData::eventCB on channel change
+	unsigned highestGddAppType;
 	caStatus writeSpecifyingCBMechanism(const casCtx &ctx, 
 		const gdd &value, bool isPutNotify );
 	static const unsigned maxSimlWriteIO = 100u;

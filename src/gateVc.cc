@@ -351,7 +351,8 @@ gateVcData::gateVcData(gateServer* m,const char* name) :
 	prev_post_value_changes(0),
 	post_value_changes(0),
 	pv_data(NULL),
-	event_data(NULL)
+	event_data(NULL),
+	highestGddAppType(0)
 {
 	gateDebug2(5,"gateVcData(gateServer=%p,name=%s)\n",(void *)m,name);
 
@@ -987,6 +988,14 @@ void gateVcData::flushAsyncAlhReadQueue(void)
 void gateVcData::vcPostEvent(casEventMask event_mask)
 {
 	gateDebug1(10,"gateVcData::vcPostEvent() name=%s\n",name());
+	gdd *local_event_data = event_data;
+
+	if (highestGddAppType) {
+		gateDebug1(10, "gateVcData::vcPostEvent() creating new %s DD\n", gddApplicationTypeTable::AppTable().getName(highestGddAppType));
+		local_event_data = gddApplicationTypeTable::AppTable().getDD(highestGddAppType);
+		copyState(*local_event_data);
+	}
+
 //	time_t t;
 
 #if DEBUG_DELAY
@@ -999,21 +1008,21 @@ void gateVcData::vcPostEvent(casEventMask event_mask)
 	if(needPosting())
 	{
 		gateDebug1(2,"gateVcData::vcPostEvent() posting event (event_data at %p)\n",
-			(void *)event_data);
+			(void *)local_event_data);
 			
-		if(event_data->isAtomic())
+		if(local_event_data->isAtomic())
 		{
 #if DEBUG_EVENT_DATA
 			if(pv->fieldType() == DBF_ENUM) {
 				heading("gateVcData::vcPostEvent",name());
-				dumpdd(99,"event_data",name(),event_data);
+				dumpdd(99,"event_data",name(),local_event_data);
 			}
 #elif DEBUG_GDD
 			heading("gateVcData::vcPostEvent(1)",name());
-			dumpdd(1,"event_data",name(),event_data);
+			dumpdd(1,"event_data",name(),local_event_data);
 #endif
 
-				postEvent(event_mask,*event_data);
+				postEvent(event_mask,*local_event_data);
 				
 #ifdef RATE_STATS
 			mrg->post_event_count++;
@@ -1026,21 +1035,24 @@ void gateVcData::vcPostEvent(casEventMask event_mask)
 #if DEBUG_EVENT_DATA && 0
 				if(pv->fieldType() == DBF_ENUM) {
 					heading("gateVcData::vcPostEvent",name());
-					dumpdd(99,"event_data",name(),event_data);
+					dumpdd(99,"event_data",name(),local_event_data);
 				}
 #endif
 #if DEBUG_GDD
 				heading("gateVcData::vcPostEvent(2)",name());
-				dumpdd(1,"event_data",name(),event_data);
+				dumpdd(1,"event_data",name(),local_event_data);
 #endif
 
-				postEvent(event_mask,*event_data);
+				postEvent(event_mask,*local_event_data);
 		
 #ifdef RATE_STATS
 				mrg->post_event_count++;
 #endif
 		}
 	}
+
+	if (local_event_data != event_data)
+		local_event_data->unreference();
 }
 
 void gateVcData::vcData(readType read_type)
@@ -1092,6 +1104,14 @@ caStatus gateVcData::read(const casCtx& ctx, gdd& dd)
 		}
 		if (caProtoMask & DBE_PROPERTY) {
 			client_mask = DBE_PROPERTY;
+		}
+
+		unsigned at=dd.applicationType();
+		if (highestGddAppType < at) {
+			if (at >= gddDbrToAit[DBR_CTRL_SHORT].app && at <= gddDbrToAit[DBR_CTRL_DOUBLE].app) {
+				highestGddAppType = at;
+				gateDebug1(10, "gateVcData::read() increasing highestGddAppType to %u\n", highestGddAppType);
+			}
 		}
 	}
 

@@ -1580,7 +1580,7 @@ void gatePvData::eventCB(EVENT_ARGS args)
 						if(stat_sevr_changed)
 							pv->vc->vcPostEvent(pv->select_mask);
 						else
-							pv->vc->vcPostEvent(pv->value_log_mask);						
+							pv->vc->vcPostEvent(pv->value_log_mask);
 					}
 				}
 			}
