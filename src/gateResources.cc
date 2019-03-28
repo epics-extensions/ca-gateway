@@ -198,6 +198,24 @@ static int gddToVALUE(const gdd *gddVal, short ourdbrtype, VALUE *valueStruct)
         }
         return(0);
 
+#ifdef DBR_INT64
+    case OUR_DBR_INT64: {
+          aitInt64 x;
+          gddVal->get(x);
+          valueStruct->v_int64 = x;
+        }
+        return(0);
+#endif
+
+#ifdef DBR_UINT64
+    case OUR_DBR_UINT64: {
+          aitUint64 x;
+          gddVal->get(x);
+          valueStruct->v_uint64 = x;
+        }
+        return(0);
+#endif
+
     case OUR_DBR_FLOAT: {
           aitFloat32 x;
           gddVal->get(x);
