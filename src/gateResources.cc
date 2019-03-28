@@ -159,42 +159,42 @@ static int gddToVALUE(const gdd *gddVal, short ourdbrtype, VALUE *valueStruct)
     case OUR_DBR_CHAR: {
           aitInt8 x;
           gddVal->get(x);
-          valueStruct->v_char = x;
+          valueStruct->v_int8 = x;
         }
         return(0);
 
     case OUR_DBR_UCHAR: {
           aitUint8 x;
           gddVal->get(x);
-          valueStruct->v_uchar = x;
+          valueStruct->v_uint8 = x;
         }
         return(0);
 
     case OUR_DBR_SHORT: {
           aitInt16 x;
           gddVal->get(x);
-          valueStruct->v_short = x;
+          valueStruct->v_int16 = x;
         }
         return(0);
 
     case OUR_DBR_USHORT: {
           aitUint16 x;
           gddVal->get(x);
-          valueStruct->v_ushort = x;
+          valueStruct->v_uint16 = x;
         }
         return(0);
 
     case OUR_DBR_LONG: {
           aitInt32 x;
           gddVal->get(x);
-          valueStruct->v_long = x;
+          valueStruct->v_int32 = x;
         }
         return(0);
 
     case OUR_DBR_ULONG: {
           aitUint32 x;
           gddVal->get(x);
-          valueStruct->v_ulong = x;
+          valueStruct->v_uint32 = x;
         }
         return(0);
 
@@ -229,26 +229,27 @@ static int gddToVALUE(const gdd *gddVal, short ourdbrtype, VALUE *valueStruct)
   }
 }
 
+#if 0
 static char *debugVALUEString(VALUE *v, int ourdbrtype, char *buffer)
 {
   switch (ourdbrtype) {
     case OUR_DBR_CHAR:
-      sprintf(buffer,"v_char %d",v->v_char);
+      sprintf(buffer,"v_int8 %d",v->v_int8);
       break;
     case OUR_DBR_UCHAR:
-      sprintf(buffer,"v_uchar %d",v->v_uchar);
+      sprintf(buffer,"v_uint8 %d",v->v_uint8);
       break;
     case OUR_DBR_SHORT:
-      sprintf(buffer,"v_short %hd",v->v_short);
+      sprintf(buffer,"v_int16 %hd",v->v_int16);
       break;
     case OUR_DBR_USHORT:
-      sprintf(buffer,"v_ushort %hu",v->v_ushort);
+      sprintf(buffer,"v_uint16 %hu",v->v_uint16);
       break;
     case OUR_DBR_LONG:
-      sprintf(buffer,"v_long %ld",v->v_long);
+      sprintf(buffer,"v_int32 %d",v->v_int32);
       break;
     case OUR_DBR_ULONG:
-      sprintf(buffer,"v_ulong %lu",v->v_ulong);
+      sprintf(buffer,"v_uint32 %u",v->v_uint32);
       break;
     case OUR_DBR_FLOAT:
       sprintf(buffer,"v_float %g",v->v_float);
@@ -264,6 +265,7 @@ static char *debugVALUEString(VALUE *v, int ourdbrtype, char *buffer)
   }
   return(buffer);
 }
+#endif
 
 #endif // WITH_CAPUTLOG
 
