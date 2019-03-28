@@ -21,6 +21,10 @@
 
 #CAPUTLOG=/usr/lib/epics
 
+# PCAS was unbundled from EPICS Base and is needed for building the
+# ca-gateway with EPICS 7
+#PCAS=/your/path/to/modules/pcas/
+
 # EPICS_BASE usually appears last so other apps can override stuff:
 #EPICS_BASE=/usr/lib/epics
 
