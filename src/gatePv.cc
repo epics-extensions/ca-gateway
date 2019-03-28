@@ -1362,8 +1362,8 @@ void gatePvData::connectCB(CONNECT_ARGS args)
 #endif
 
 	// send message to user concerning connection
-			if(ca_state(args.chid)==cs_conn)
-{
+	if(ca_state(args.chid)==cs_conn)
+	{
 		gateDebug0(9,"gatePvData::connectCB() connection ok\n");
 
 		switch(ca_field_type(args.chid))
@@ -1509,7 +1509,7 @@ void gatePvData::putCB(EVENT_ARGS args)
 	pv->vc->putCB(args.status,*pWIO);
 }
 
-// This is the callback registered with ca_add_subscription in the
+// This is the callback registered with ca_create_subscription in the
 // monitor routine.  If conditions are right, it calls the routines
 // that copy the data into the GateVcData's event_data.
 void gatePvData::eventCB(EVENT_ARGS args)
