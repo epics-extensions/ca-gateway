@@ -236,6 +236,7 @@ caStatus gateVcChan::write(const casCtx &ctx, const gdd &value)
 	// Trap writes
 	if(asclient && asclient->clientPvt()->trapMask) {
 		FILE *fp=global_resources->getPutlogFp();
+#ifndef WITH_CAPUTLOG
 		if(fp) {
 			fprintf(fp,"%s %s@%s %s\n",
 			  timeStamp(),
@@ -244,7 +245,14 @@ caStatus gateVcChan::write(const casCtx &ctx, const gdd &value)
 			  vc && vc->getName()?vc->getName():"Unknown");
 			fflush(fp);
 		}
-#ifdef WITH_CAPUTLOG
+#else	/* WITH_CAPUTLOG */
+		if(fp) {
+          global_resources->putLog( fp,	  user ? user : "Unknown",
+                                          host ? host : "Unknown",
+		  								  (vc && vc->getName()) ? vc->getName() : "Unknown",
+                                          (vc) ? vc->eventData() : NULL,
+                                          &value);
+		}
         if (global_resources->hasCaPutlogAddress()) {
           global_resources->caPutLog_Send(user ? user : "Unknown",
                                           host ? host : "Unknown",
@@ -272,15 +280,23 @@ caStatus gateVcChan::writeNotify(const casCtx &ctx, const gdd &value)
 	// Trap writes
 	if(asclient && asclient->clientPvt()->trapMask) {
 		FILE *fp=global_resources->getPutlogFp();
+#ifndef WITH_CAPUTLOG
 		if(fp) {
 			fprintf(fp,"%s %s@%s %s\n",
 			  timeStamp(),
 			  user?user:"Unknown",
 			  host?host:"Unknown",
-			  vc && vc->getName()?vc->getName():"Unknown");
+			  vc && vc->getName()?vc->getName():"Unknown" );
 			fflush(fp);
 		}
-#ifdef WITH_CAPUTLOG
+#else	/* WITH_CAPUTLOG */
+		if(fp) {
+          global_resources->putLog( fp,	  user ? user : "Unknown",
+                                          host ? host : "Unknown",
+		  								  (vc && vc->getName()) ? vc->getName() : "Unknown",
+                                          (vc) ? vc->eventData() : NULL,
+                                          &value);
+		}
         if (global_resources->hasCaPutlogAddress()) {
           global_resources->caPutLog_Send(user ? user : "Unknown",
                                           host ? host : "Unknown",
@@ -798,29 +814,33 @@ void gateVcData::copyState(gdd &dd)
 	// pv_data is NULL. For DBF_STRING pv_data has application type
 	// enums, and is the list of strings.  See the dataXxxCB
 	// gatePvData routines.
-	if(pv_data) table.smartCopy(&dd,pv_data);
-
+	if ( pv_data ) {
+		table.smartCopy(&dd,pv_data);
 #if DEBUG_GDD || DEBUG_ENUM
-	dumpdd(2,"pv_data",name(),pv_data);
-	dumpdd(3,"dd(after pv_data)",name(),&dd);
+		dumpdd(2,"pv_data",name(),pv_data);
+		dumpdd(3,"dd(after pv_data)",name(),&dd);
 #endif
+	}
 
 	// The event_data gdd has an application type of value for all DBF
 	// types.  The primitive type and whether it is scalar or atomic
 	// varies with the DBR type.  See the eventXxxCB gatePvData
 	// routines.  If the pv is alh monitored, the event_data is a
 	// container type (gddAppType_dbr_stsack_string)
-	if(event_data) table.smartCopy(&dd,event_data);
-	
+	if ( event_data ) {
+		table.smartCopy(&dd,event_data);
 #if DEBUG_GDD || DEBUG_ENUM
-	if(event_data) dumpdd(4,"event_data",name(),event_data);
-	dumpdd(5,"dd(after event_data)",name(),&dd);
+		dumpdd(4,"event_data",name(),event_data);
+		dumpdd(5,"dd(after event_data)",name(),&dd);
 #endif
 #if DEBUG_EVENT_DATA
-	if(pv->fieldType() == DBF_ENUM) {
-		dumpdd(99,"event_data",name(),event_data);
-		heading("*** gateVcData::copyState: end",name());
+		if(pv->fieldType() == DBF_ENUM) {
+			dumpdd(99,"event_data",name(),event_data);
+		}
+#endif
 	}
+#if DEBUG_GDD || DEBUG_ENUM
+	heading("*** gateVcData::copyState: end",name());
 #endif
 }
 
@@ -837,9 +857,11 @@ void gateVcData::vcNew(readType read_type)
 
 	// Flush any accumulated reads and writes
 	flushAsyncWriteQueue();
-	if(ctrl_rio.count() || time_rio.count()) flushAsyncReadQueue(read_type);
+	if(ctrl_rio.count() || time_rio.count())
+		flushAsyncReadQueue(read_type);
 	if(!pv->alhGetPending()) {
-		if(alhRio.count()) flushAsyncAlhReadQueue();
+		if(alhRio.count())
+			flushAsyncAlhReadQueue();
 	}
 
 #if DEBUG_EVENT_DATA
@@ -1073,13 +1095,12 @@ void gateVcData::interestDelete(void)
 	markNotInterested();
 }
 
-caStatus gateVcData::read(const casCtx& ctx, gdd& dd)
+caStatus gateVcData::read( const casCtx& ctx, gdd& dd )
 {
 	gateDebug1(10,"gateVcData::read() name=%s\n",name());
 	static const aitString str = "Not Supported by Gateway";
 	readType read_type = ctrlType;
-	
-	
+
 	/* This is to obtain mask from client */
 	if(ctx.getMsg()->m_cmmd == CA_PROTO_EVENT_ADD){
 		struct mon_info *pMonInfo = (struct mon_info *) ctx.getData();

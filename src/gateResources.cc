@@ -427,6 +427,41 @@ void gateResources::caPutLog_Send
   }
   caPutLogTaskSend(pdata);
 }
+
+void gateResources::putLog(
+       FILE            *       fp,
+       const char      *       user,
+       const char      *       host,
+       const char      *       pvname,
+       const gdd       *       old_value,
+       const gdd       *       new_value       )
+{
+       if(fp) {
+               VALUE   oldVal,                 newVal;
+               char    acOldVal[20],   acNewVal[20];
+               if ( old_value == NULL )
+               {
+                       acOldVal[0] = '?';
+                       acOldVal[1] = '\0';
+               }
+               else
+               {
+                       gddToVALUE( old_value, gddGetOurType(old_value), &oldVal );
+                       VALUE_to_string( acOldVal, 20, &oldVal, gddGetOurType(old_value) );
+               }
+               gddToVALUE( new_value, gddGetOurType(new_value), &newVal );
+               VALUE_to_string( acNewVal, 20, &newVal, gddGetOurType(new_value) );
+               fprintf(fp,"%s %s@%s %s %s old=%s\n",
+                 timeStamp(),
+                 user?user:"Unknown",
+                 host?host:"Unknown",
+                 pvname,
+                 acNewVal,
+                 acOldVal );
+               fflush(fp);
+       }
+}
+
 #endif // WITH_CAPUTLOG
 
 int gateResources::setReportFile(const char* file)

@@ -145,6 +145,12 @@ public:
                        const gdd *old_value,
                        const gdd *new_value);
 	void caPutLog_Term(void);
+    void putLog(	   FILE *fp,
+    				   const char *user,
+                       const char *host,
+                       const char *pvname,
+                       const gdd *old_value,
+                       const gdd *new_value);
 #endif
 
 	// here for convenience
