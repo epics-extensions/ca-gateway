@@ -60,6 +60,13 @@ record(waveform, "ioc:passivewaveform") {
   field(FTVL, "DOUBLE")
 }
 
+record(waveform, "ioc:bigpassivewaveform") {
+  field(DESC, "Big passive waveform")
+  field(SCAN, "Passive")
+  field(NELM, "3000")
+  field(FTVL, "DOUBLE")
+}
+
 record(ai, "ioc:gwcachetest") {
   field(PREC, "3")
   field(EGU, "wobbles")
