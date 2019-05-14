@@ -7,7 +7,8 @@ import GatewayControl
 import gwtests
 
 
-max_array_bytes_key = "IOC_EPICS_CA_MAX_ARRAY_BYTES"
+MAX_ARRAY_BYTES_KEY = "IOC_EPICS_CA_MAX_ARRAY_BYTES"
+
 
 class TestWaveformWithCAMaxArrayBytes(unittest.TestCase):
     '''
@@ -19,8 +20,6 @@ class TestWaveformWithCAMaxArrayBytes(unittest.TestCase):
     '''
 
     def test_gateway_does_not_crash_after_requesting_waveform_when_max_array_bytes_too_small(self):
-
-
         gwtests.setup()
         self.iocControl = IOCControl.IOCControl()
         self.gatewayControl = GatewayControl.GatewayControl()
@@ -29,12 +28,12 @@ class TestWaveformWithCAMaxArrayBytes(unittest.TestCase):
         # and fail the second case
         max_array_bytes_cases = ["6000000", "16384"]
         for max_array_bytes in max_array_bytes_cases:
-            print("\n\n\n>>>>>IOC_EPICS_MAX_ARRAY_BYTES={}\n\n\n"
-                  .format(max_array_bytes))
+            print("\n\n\n>>>>>{}={}\n\n\n"
+                  .format(MAX_ARRAY_BYTES_KEY, max_array_bytes))
 
             # The bug crashes the gateway when EPICS_CA_MAX_ARRAY_BYTES
             # on the IOC is too small. Set it here
-            os.environ["IOC_EPICS_CA_MAX_ARRAY_BYTES"] = max_array_bytes
+            os.environ[MAX_ARRAY_BYTES_KEY] = max_array_bytes
             self.iocControl.startIOC()
 
             # The no_cache argument is required to trigger the bug
@@ -74,13 +73,13 @@ class TestWaveformWithCAMaxArrayBytes(unittest.TestCase):
                                    "exception from subprocess: %s", e)
             else:
                 waveform_from_gateway = w
-
                 print(waveform_from_gateway)
                 print "waveform_from_gateway"
                 self.assertEqual(list(waveform_from_gateway), [0]*3000)
             finally:
                 self.gatewayControl.stop()
                 self.iocControl.stop()
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
