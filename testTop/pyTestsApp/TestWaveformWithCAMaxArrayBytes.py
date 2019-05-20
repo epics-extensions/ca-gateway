@@ -75,7 +75,6 @@ class TestWaveformWithCAMaxArrayBytes(unittest.TestCase):
                 waveform_from_gateway = w
                 print(waveform_from_gateway)
                 print "waveform_from_gateway"
-                self.assertEqual(list(waveform_from_gateway), [0]*3000)
             finally:
                 self.gatewayControl.stop()
                 self.iocControl.stop()
