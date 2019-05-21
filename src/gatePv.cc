@@ -1830,14 +1830,14 @@ void gatePvData::getCB(EVENT_ARGS args)
                 dd = pv->runValueDataCB(&args);
                 if (dd)
                     pv->vc->setEventData(dd);
-            }
 
-            if (pv->needAddRemove() && !pv->vc->needPosting()) {
-                gateDebug0(5,"gatePvData::getCB() need add/remove\n");
-                pv->markAddRemoveNotNeeded();
-                pv->vc->vcAdd(read_type);
-            } else
-                pv->vc->vcData(read_type);
+                if (pv->needAddRemove() && !pv->vc->needPosting()) {
+                    gateDebug0(5, "gatePvData::getCB() need add/remove\n");
+                    pv->markAddRemoveNotNeeded();
+                    pv->vc->vcAdd(read_type);
+                } else
+                    pv->vc->vcData(read_type);
+            }
 
             if (pv->vc->needPosting()) {  // enable monitor only if requested
                 gateDebug0(5,"gatePvData::getCB() [NO_CACHE] Enable value monitor\n");
