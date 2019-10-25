@@ -464,10 +464,10 @@ void gateResources::putLog(
                else
                {
                        gddToVALUE( old_value, gddGetOurType(old_value), &oldVal );
-                       VALUE_to_string( acOldVal, 20, &oldVal, gddGetOurType(old_value) );
+                       caPutLogVALUEToString( acOldVal, 20, &oldVal, gddGetOurType(old_value) );
                }
                gddToVALUE( new_value, gddGetOurType(new_value), &newVal );
-               VALUE_to_string( acNewVal, 20, &newVal, gddGetOurType(new_value) );
+               caPutLogVALUEToString( acNewVal, 20, &newVal, gddGetOurType(new_value) );
                fprintf(fp,"%s %s@%s %s %s old=%s\n",
                  timeStamp(),
                  user?user:"Unknown",
