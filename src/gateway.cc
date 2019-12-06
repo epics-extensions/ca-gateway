@@ -596,6 +596,9 @@ static int startEverything(char *prefix)
 	printEnv(stdout,"EPICS_CAS_INTF_ADDR_LIST");
 	printEnv(stdout,"EPICS_CAS_SERVER_PORT");
 	printEnv(stdout,"EPICS_CAS_IGNORE_ADDR_LIST");
+#ifdef EPICS_HAS_CAS_IGNORE_NET_LIST
+	printEnv(stdout,"EPICS_CAS_IGNORE_NET_LIST");
+#endif
 	printEnv(stdout,"EPICS_CAS_AUTO_BEACON_ADDR_LIST");
 	printEnv(stdout,"EPICS_CAS_BEACON_ADDR_LIST");
 
