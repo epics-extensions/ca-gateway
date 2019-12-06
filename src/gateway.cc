@@ -591,6 +591,9 @@ static int startEverything(char *prefix)
 	printf("CA Protocol version %s\n", ca_version());
 	printEnv(stdout,"EPICS_CA_ADDR_LIST");
 	printEnv(stdout,"EPICS_CA_AUTO_ADDR_LIST");
+#ifdef EPICS_HAS_CA_IGNORE_NET_LIST
+	printEnv(stdout,"EPICS_CA_IGNORE_NET_LIST");
+#endif
 	printEnv(stdout,"EPICS_CA_SERVER_PORT");
 	printEnv(stdout,"EPICS_CA_MAX_ARRAY_BYTES");
 	printEnv(stdout,"EPICS_CAS_INTF_ADDR_LIST");
