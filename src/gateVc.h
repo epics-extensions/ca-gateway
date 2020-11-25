@@ -34,6 +34,8 @@
 # include <sys/time.h>
 #endif
 
+#include <epicsVersion.h>
+
 #include <caProto.h>
 
 #include "casdef.h"
@@ -74,14 +76,22 @@ class gateChan : public casChannel
 {
 public:
 	gateChan(const casCtx &ctx, casPV *pvIn, gateAsEntry *asentryIn,
-	  const char * const user, const char * const host);
+	  const char * const user, const char * const host
+#ifdef EPICS_HAS_AS_IPAG
+          ,epicsUInt32 ip_addr
+#endif
+          );
 	~gateChan(void);
 
 #ifdef SUPPORT_OWNER_CHANGE
     // Virtual function from casChannel, not called from Gateway.  It
     // is a security hole to support this, and it is no longer
     // implemented in base.
-	virtual void setOwner(const char * const user, const char * const host);
+	virtual void setOwner(const char * const user, const char * const host
+#ifdef EPICS_HAS_AS_IPAG
+                              ,epicsUInt32 ip_addr
+#endif
+                             );
 #endif
 
 	void report(FILE *fp);
@@ -103,13 +113,20 @@ protected:
 	gateAsClient *asclient; // Must be deleted when done using it
 	const char *user;
 	const char *host;
+#ifdef EPICS_HAS_AS_IPAG
+        epicsUInt32 ip_addr;
+#endif
 };
 
 class gateVcChan : public gateChan, public tsDLNode<gateVcChan>
 {
 public:
 	gateVcChan(const casCtx &ctx, casPV *pvIn, gateAsEntry *asentryIn,
-	  const char * const user, const char * const host);
+	  const char * const user, const char * const host
+#ifdef EPICS_HAS_AS_IPAG
+          ,epicsUInt32 ip_addr
+#endif
+          );
 	~gateVcChan(void);
 
     virtual caStatus write(const casCtx &ctx, const gdd &value);
@@ -138,7 +155,11 @@ public:
 	virtual unsigned maxDimension(void) const;
 	virtual aitIndex maxBound(unsigned dim) const;
 	virtual casChannel *createChannel (const casCtx &ctx,
-		const char* const pUserName, const char* const pHostName);
+		const char* const pUserName, const char* const pHostName
+#ifdef EPICS_HAS_AS_IPAG
+                ,epicsUInt32 ip_addr
+#endif
+                );
 	virtual const char *getName() const;
 
 	caStatus write(const casCtx &ctx, const gdd &value, gateChan &chan);

@@ -18,6 +18,8 @@
 #ifndef GATE_STAT_H
 #define GATE_STAT_H
 
+#include <epicsVersion.h>
+
 #include "casdef.h"
 #include "aitTypes.h"
 
@@ -38,7 +40,11 @@ class gateStatChan : public gateChan, public tsDLNode<gateStatChan>
 {
 public:
 	gateStatChan(const casCtx &ctx, casPV *pvIn, gateAsEntry *asentryIn,
-	  const char * const user, const char * const host);
+	  const char * const user, const char * const host
+#ifdef EPICS_HAS_AS_IPAG
+          ,epicsUInt32 ip_addr
+#endif
+          );
 	~gateStatChan(void);
 
 	virtual caStatus write(const casCtx &ctx, const gdd &value);
@@ -61,7 +67,11 @@ public:
 	virtual unsigned maxSimultAsyncOps(void) const;
 	virtual const char *getName() const;
 	virtual casChannel *createChannel (const casCtx &ctx,
-		const char* const pUserName, const char* const pHostName);
+		const char* const pUserName, const char* const pHostName
+#ifdef EPICS_HAS_AS_IPAG
+                ,epicsUInt32 ip_addr
+#endif
+                );
 
 	caStatus write(const casCtx &ctx, const gdd &dd, gateChan &chan);
 

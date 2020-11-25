@@ -30,6 +30,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <epicsVersion.h>
+
 
 extern "C" {
 #include <ellLib.h>
@@ -152,7 +154,11 @@ class gateAsClient
 {
 public:
 	gateAsClient(void);
-	gateAsClient(gateAsEntry *pase, const char *user, const char *host);
+	gateAsClient(gateAsEntry *pase, const char *user, const char *host
+#ifdef EPICS_HAS_AS_IPAG
+                     ,epicsUInt32 ip_addr
+#endif
+                    );
 	~gateAsClient(void);
 
 	aitBool readAccess(void)  const
@@ -167,8 +173,17 @@ public:
     // Used in virtual function setOwner from casChannel, not called
     // from Gateway.  It is a security hole to support this, and it is
     // no longer implemented in base.
-	long changeInfo(const char* user, const char* host)
-	  { return asChangeClient(asclientpvt,asentry->level,(char*)user,(char*)host);}
+	long changeInfo(const char* user, const char* host
+#ifdef EPICS_HAS_AS_IPAG
+                        ,epicsUInt32 ip_addr
+#endif
+                       )
+	  { return asChangeClient(asclientpvt,asentry->level, (char*)user ,
+                                  (char*)host
+#ifdef EPICS_HAS_AS_IPAG
+                                  ,ip_addr
+#endif
+                                  );}
 #endif
 
 	const char *user(void) { return (const char*)asclientpvt->user; }

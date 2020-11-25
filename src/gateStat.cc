@@ -30,6 +30,8 @@
 #include <time.h>
 #endif
 
+#include <epicsVersion.h>
+
 #include <gdd.h>
 #include <gddApps.h>
 #include "gateResources.h"
@@ -59,8 +61,16 @@ static struct timespec *timeSpec(void)
 //////// gateStatChan (derived from gate chan derived from casChannel)
 
 gateStatChan::gateStatChan(const casCtx &ctx, casPV *casPvIn, gateAsEntry *asentry,
-  const char * const user, const char * const host) :
-	gateChan(ctx,casPvIn,asentry,user,host)
+  const char * const user, const char * const host
+#ifdef EPICS_HAS_AS_IPAG
+  ,epicsUInt32 ip_addr
+#endif
+  ) :
+	gateChan(ctx,casPvIn,asentry,user,host
+#ifdef EPICS_HAS_AS_IPAG
+                 ,ip_addr
+#endif
+                )
 {
 	gateStat *pStat=(gateStat *)casPv;
 	if(pStat) pStat->addChan(this);
@@ -217,9 +227,17 @@ const char *gateStat::getName() const
 }
 
 casChannel* gateStat::createChannel(const casCtx &ctx,
-  const char * const user, const char * const host)
+  const char * const user, const char * const host
+#ifdef EPICS_HAS_AS_IPAG
+  ,epicsUInt32 ip_addr
+#endif
+  )
 {
-	gateStatChan *pChan=new gateStatChan(ctx,this,asentry,user,host);
+	gateStatChan *pChan=new gateStatChan(ctx,this,asentry,user,host
+#ifdef EPICS_HAS_AS_IPAG
+                                             ,ip_addr
+#endif
+                                            );
 	return pChan;
 }
 

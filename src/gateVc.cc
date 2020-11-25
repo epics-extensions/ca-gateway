@@ -48,6 +48,8 @@
 # include <unistd.h>
 #endif
 
+#include <epicsVersion.h>
+
 #include <gdd.h>
 #include <gddApps.h>
 #include <dbMapper.h>
@@ -113,14 +115,25 @@ void dumpdd(int step, const char *desc, const char * /*name*/, const gdd *dd)
 // gateAsClient::gateAsClient.  We assume this storage is in the
 // server and just keep pointers to it.
 gateChan::gateChan(const casCtx &ctx, casPV *casPvIn, gateAsEntry *asentry,
-  const char * const userIn, const char * const hostIn) :
+  const char * const userIn, const char * const hostIn
+#ifdef EPICS_HAS_AS_IPAG
+  ,epicsUInt32 ip_addrIn
+#endif
+  ) :
 	casChannel(ctx),
 	casPv(casPvIn),
 	user(userIn),
 	host(hostIn)
+#ifdef EPICS_HAS_AS_IPAG
+        ,ip_addr(ip_addrIn)
+#endif
 {
 
-	asclient=new gateAsClient(asentry,user,host);
+	asclient=new gateAsClient(asentry,user,host
+#ifdef EPICS_HAS_AS_IPAG
+                                  ,ip_addr
+#endif
+                                 );
 	if(asclient) asclient->setUserFunction(post_rights,this);
 }
 
@@ -133,9 +146,17 @@ gateChan::~gateChan(void)
 // Virtual function from casChannel, not called from Gateway.  It is a
 // security hole to support this, and it is no longer implemented in
 // base.
-void gateChan::setOwner(const char* const u, const char* const h)
+void gateChan::setOwner(const char* const u, const char* const h
+#ifdef EPICS_HAS_AS_IPAG
+                        ,epicsUInt32 ip_addr
+#endif
+                       )
 {
-	asclient->changeInfo(u,h);
+	asclient->changeInfo(u,h
+#ifdef EPICS_HAS_AS_IPAG
+                             ,ip_addr
+#endif
+                            );
 }
 #endif
 
@@ -184,7 +205,11 @@ void gateChan::resetAsClient(gateAsEntry *asentry)
 	// being destroyed or if the asentry is NULL
 	if(!casPv || !asentry) return;
 
-	asclient=new gateAsClient(asentry,user,host);
+	asclient=new gateAsClient(asentry,user,host
+#ifdef EPICS_HAS_AS_IPAG
+                                  ,ip_addr
+#endif
+                                 );
 	if(asclient) {
 		asclient->setUserFunction(post_rights,this);
 	}
@@ -211,8 +236,16 @@ void gateChan::deleteAsClient(void)
 // ------------------------gateVcChan
 
 gateVcChan::gateVcChan(const casCtx &ctx, casPV *casPvIn, gateAsEntry *asentry,
-  const char * const user, const char * const host) :
-	gateChan(ctx,casPvIn,asentry,user,host)
+  const char * const user, const char * const host
+#ifdef EPICS_HAS_AS_IPAG
+  ,epicsUInt32 ip_addr
+#endif
+  ) :
+	gateChan(ctx,casPvIn,asentry,user,host
+#ifdef EPICS_HAS_AS_IPAG
+                 ,ip_addr
+#endif
+                )
 {
 	gateVcData *vc=(gateVcData *)casPv;
 	if(vc) vc->addChan(this);
@@ -492,10 +525,18 @@ void gateVcData::destroy(void)
 }
 
 casChannel* gateVcData::createChannel(const casCtx &ctx,
-  const char * const user, const char * const host)
+  const char * const user, const char * const host
+#ifdef EPICS_HAS_AS_IPAG
+  ,epicsUInt32 ip_addr
+#endif
+  )
 {
 	gateDebug0(5,"gateVcData::createChannel()\n");
-	gateVcChan* chan =  new gateVcChan(ctx,this,asentry,user,host);
+	gateVcChan* chan =  new gateVcChan(ctx,this,asentry,user,host
+#ifdef EPICS_HAS_AS_IPAG
+                                           ,ip_addr
+#endif
+                                          );
 	return chan;
 }
 
