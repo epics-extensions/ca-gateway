@@ -791,6 +791,58 @@ void gateVcData::setPvData(gdd* dd)
 	//	vcData();
 }
 
+// This function is an adapted version of the function with the same
+// name from casStrmClient.cc. We use it to ensure that a GDD container
+// member has enough space to accept all the elements we want to copy
+// to it.
+static void convertContainerMemberToAtomic(
+	gdd &dd, aitUint32 appType, aitUint32 count)
+{
+	gdd * pVal;
+	if (dd.isContainer()) {
+		// All DBR types have a value member
+		aitUint32 index;
+		int gdds = gddApplicationTypeTable::AppTable().mapAppToIndex(
+			dd.applicationType(), appType, index);
+		if (gdds) {
+			gateDebug0(
+				1,
+				"convertContainerMemberToAtomic: got container type "
+				"without a value member");
+			return;
+		}
+
+		pVal = dd.getDD(index);
+		if (!pVal) {
+			gateDebug0(
+				1,
+				"convertContainerMemberToAtomic: value member is null");
+			return;
+		}
+	} else {
+		pVal = &dd;
+	}
+
+	if (count <= 1) {
+		return;
+	}
+
+	// We can't changed a managed type that is already atomic (array).
+	if (!pVal->isScalar()) {
+		gateDebug0(
+			1,
+			"convertContainerMemberToAtomic: Cannot resize value member "
+			"that already is an array.");
+		return;
+	}
+
+	// convert to atomic
+	gddBounds bds;
+	bds.setSize(count);
+	bds.setFirst(0u);
+	pVal->setDimension(1u, &bds);
+}
+
 // The state of a process variable in the gateway is maintained in two
 // gdd's, the pv_data and the event_data.  The pv_data is filled in
 // from the gatePvData's getCB.  For most native types, its
@@ -816,6 +868,14 @@ void gateVcData::copyState(gdd &dd)
 	// enums, and is the list of strings.  See the dataXxxCB
 	// gatePvData routines.
 	if ( pv_data ) {
+		// If the target gdd stores enum labels, we have to ensure that
+		// there is enough space for these labels. The code in
+		// casStrmClient.cc does the same thing.
+		unsigned at = dd.applicationType();
+		if (at == gddAppType_dbr_gr_enum || at == gddAppType_dbr_ctrl_enum) {
+			convertContainerMemberToAtomic(
+				dd, gddAppType_enums, MAX_ENUM_STATES);
+		}
 		table.smartCopy(&dd,pv_data);
 #if DEBUG_GDD || DEBUG_ENUM
 		dumpdd(2,"pv_data",name(),pv_data);
@@ -829,6 +889,31 @@ void gateVcData::copyState(gdd &dd)
 	// routines.  If the pv is alh monitored, the event_data is a
 	// container type (gddAppType_dbr_stsack_string)
 	if ( event_data ) {
+		// We might have to resize the target gdd if it does not have
+		// enough space to store all the value elements. This only
+		// happens when the target gdd is using one of the container
+		// types.
+		unsigned at = dd.applicationType();
+		if (at >= gddAppType_dbr_gr_short
+			&& at <= gddAppType_dbr_stsack_string) {
+			aitUint32 count;
+			if (event_data->isContainer()) {
+				aitUint32 index;
+				int gdds = table.mapAppToIndex(
+					event_data->applicationType(), gddAppType_value, index);
+				if (gdds) {
+					gateDebug0(
+						1,
+						"gateVcData::copyState: could not find value member");
+					count = 1;
+				} else {
+					count = event_data->getDD(index)->getDataSizeElements();
+				}
+			} else {
+				count = event_data->getDataSizeElements();
+			}
+			convertContainerMemberToAtomic(dd, gddAppType_value, count);
+		}
 		table.smartCopy(&dd,event_data);
 #if DEBUG_GDD || DEBUG_ENUM
 		dumpdd(4,"event_data",name(),event_data);
@@ -1129,7 +1214,7 @@ caStatus gateVcData::read( const casCtx& ctx, gdd& dd )
 
 		unsigned at=dd.applicationType();
 		if (highestGddAppType < at) {
-			if (at >= gddDbrToAit[DBR_CTRL_SHORT].app && at <= gddDbrToAit[DBR_CTRL_DOUBLE].app) {
+			if (at >= gddAppType_dbr_gr_short && at <= gddAppType_dbr_ctrl_double) {
 				highestGddAppType = at;
 				gateDebug1(10, "gateVcData::read() increasing highestGddAppType to %u\n", highestGddAppType);
 			}
