@@ -96,8 +96,8 @@ extern "C" {
 	extern void logEventCB(EVENT_ARGS args) {        // log event callback
 		gatePvData::logEventCB(args);
 	}
-	extern void propEventCB(EVENT_ARGS args) {        // prop event callback
-		gatePvData::propEventCB(args);
+	extern void propDataCB(EVENT_ARGS args) {        // prop event callback
+		gatePvData::propDataCB(args);
 	}
 }
 
@@ -857,7 +857,7 @@ int gatePvData::propMonitor(void)
         if(ca_read_access(chID)) {
             gateDebug1(5,"gatePvData::propMonitor() type=%ld\n",dataType());
             rc=ca_create_subscription(dataType(),0,chID,DBE_PROPERTY,
-              ::propEventCB,this,&propID);
+              ::propDataCB,this,&propID);
             if(rc != ECA_NORMAL) {
                 fprintf(stderr,"%s gatePvData::propMonitor: "
                   "ca_create_subscription failed for %s:\n"
@@ -1531,10 +1531,10 @@ void gatePvData::logEventCB(EVENT_ARGS args)
 	}
 }
 
-void gatePvData::propEventCB(EVENT_ARGS args)
+void gatePvData::propDataCB(EVENT_ARGS args)
 {
     gatePvData* pv=(gatePvData*)ca_puser(args.chid);
-    gateDebug3(5,"gatePvData::propEventCB(gatePvData=%p)(gateVCData=%p) type=%d\n",
+    gateDebug3(5,"gatePvData::propDataCB(gatePvData=%p)(gateVCData=%p) type=%d\n",
       (void *)pv, (void*)pv->vc, (unsigned int)args.type);
     gdd* dd;
 
@@ -1543,14 +1543,14 @@ void gatePvData::propEventCB(EVENT_ARGS args)
 #endif
 
 #if DEBUG_BEAM
-    printf("gatePvData::propEventCB(): status=%d %s\n",
+    printf("gatePvData::propDataCB(): status=%d %s\n",
       args.status,
       pv->name());
 #endif
 
 #if DEBUG_DELAY
     if(!strncmp("Xorbit",pv->name(),6)) {
-        printf("%s gatePvData::propEventCB: %s state=%d\n",timeStamp(),pv->name(),
+        printf("%s gatePvData::propDataCB: %s state=%d\n",timeStamp(),pv->name(),
           pv->getState());
     }
 #endif
@@ -1560,9 +1560,9 @@ void gatePvData::propEventCB(EVENT_ARGS args)
         // only sends event_data and does ADD transactions
         if(pv->active())
         {
-            gateDebug3(5,"gatePvData::propEventCB() %s PV %s propGetPending %d\n",pv->getStateName(),pv->name(),pv->propGetPending());
+            gateDebug3(5,"gatePvData::propDataCB() %s PV %s propGetPending %d\n",pv->getStateName(),pv->name(),pv->propGetPending());
             if(pv->propGetPending()) {
-                gateDebug1(5,"gatePvData::propEventCB() Ignore first propEvent %s PV\n",pv->getStateName());
+                gateDebug1(5,"gatePvData::propDataCB() Ignore first propEvent %s PV\n",pv->getStateName());
                 pv->markPropNoGetPending();
                 return;
             }
@@ -1597,7 +1597,7 @@ void gatePvData::propEventCB(EVENT_ARGS args)
 
                 if (pv->needAddRemove())
                 {
-                    gateDebug0(5,"gatePvData::propEventCB() need add/remove\n");
+                    gateDebug0(5,"gatePvData::propDataCB() need add/remove\n");
                     pv->markAddRemoveNotNeeded();
                     pv->vc->vcAdd(ctrlType);
                 }

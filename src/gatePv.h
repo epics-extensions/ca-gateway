@@ -305,7 +305,7 @@ public:
     static void accessCB(ACCESS_ARGS args);     // access security callback
     static void eventCB(EVENT_ARGS args);       // value-changed callback
     static void logEventCB(EVENT_ARGS args);    // value-changed callback
-	static void propEventCB(EVENT_ARGS args);   // value-changed callback
+	static void propDataCB(EVENT_ARGS args);    // DBE_PROPERTY data-changed callback
     static void alhCB(EVENT_ARGS args);         // alh info value-changed callback
     static void putCB(EVENT_ARGS args);         // put callback
     static void getCB(EVENT_ARGS args);         // get callback
