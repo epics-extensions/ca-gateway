@@ -96,9 +96,12 @@ extern "C" {
 	extern void logEventCB(EVENT_ARGS args) {        // log event callback
 		gatePvData::logEventCB(args);
 	}
-	extern void propDataCB(EVENT_ARGS args) {        // prop event callback
-		gatePvData::propDataCB(args);
-	}
+    extern void propDataCB(EVENT_ARGS args) {        // prop data event callback
+        gatePvData::propDataCB(args);
+    }
+    extern void propEventCB(EVENT_ARGS args) {        // prop value event callback
+        gatePvData::propEventCB(args);
+    }
 }
 
 // quick access to global_resources
@@ -855,7 +858,8 @@ int gatePvData::propMonitor(void)
         // gets native element count number of elements:
 
         if(ca_read_access(chID)) {
-            gateDebug1(5,"gatePvData::propMonitor() type=%ld\n",dataType());
+            // DBE_PROPERTY data subscription
+            gateDebug1(5,"gatePvData::propMonitor() dataType=%ld\n",dataType());
             rc=ca_create_subscription(dataType(),0,chID,DBE_PROPERTY,
               ::propDataCB,this,&propID);
             if(rc != ECA_NORMAL) {
@@ -864,8 +868,21 @@ int gatePvData::propMonitor(void)
                   " %s\n",
                   timeStamp(),name()?name():"Unknown",ca_message(rc));
                 rc=-1;
-            } else {
-                rc=0;
+            }
+
+            // DBE_PROPERTY event subscription
+            gateDebug1(5,"gatePvData::propMonitor() eventType=%ld\n",eventType());
+            rc=ca_create_subscription(eventType(),0,chID,DBE_PROPERTY,
+              ::propEventCB,this,&propID);
+            if(rc != ECA_NORMAL) {
+                fprintf(stderr,"%s gatePvData::propMonitor: "
+                  "ca_create_subscription event failed for %s:\n"
+                  " %s\n",
+                  timeStamp(),name()?name():"Unknown",ca_message(rc));
+                rc=-1;
+            }
+
+            if(rc==0) {
                 markPropMonitored();
 #if OMIT_CHECK_EVENT
 #else
@@ -1580,12 +1597,33 @@ void gatePvData::propDataCB(EVENT_ARGS args)
 #endif
                 pv->vc->setPvData(dd);
             }
+        }
+        ++(pv->event_count);
+    }
+}
 
-            gateDebug2(4,"gatePvData::propEventCB() %s PV %s runValueDataCB\n",pv->getStateName(),pv->name());
-            if ((dd = pv->runValueDataCB(&args)))  // Create the value gdd
+void gatePvData::propEventCB(EVENT_ARGS args)
+{
+    gatePvData* pv=(gatePvData*)ca_puser(args.chid);
+    gateDebug3(5,"gatePvData::propEventCB(gatePvData=%p)(gateVCData=%p) type=%d\n",
+      (void *)pv, (void*)pv->vc, (unsigned int)args.type);
+    gdd* dd;
+
+#ifdef RATE_STATS
+    ++pv->mrg->client_event_count;
+#endif
+
+    if(args.status==ECA_NORMAL)
+    {
+        // only sends event_data and does ADD transactions
+        if(pv->active())
+        {
+            gateDebug2(4,"gatePvData::propEventCB() %s PV %s runEventCB\n",pv->getStateName(),pv->name());
+            if ((dd = pv->runEventCB(&args)))  // Create the value gdd
             {
-#if DEBUG_BEAM
-                printf("  dd=%p needAddRemove=%d\n", dd, pv->needAddRemove());
+                gateDebug2(3,"gatePvData::propEventCB() %s PV %s setEventData\n",pv->getStateName(),pv->name());
+#if DEBUG_ENUM
+                dumpdd(1, "gatePvData::propEventCB setEventData", pv->name(), dd);
 #endif
                 gateDebug2(3,"gatePvData::propEventCB() %s PV %s setEventData\n",pv->getStateName(),pv->name());
 #if DEBUG_ENUM
@@ -1597,7 +1635,7 @@ void gatePvData::propDataCB(EVENT_ARGS args)
 
                 if (pv->needAddRemove())
                 {
-                    gateDebug0(5,"gatePvData::propDataCB() need add/remove\n");
+                    gateDebug0(5,"gatePvData::propEventCB() need add/remove\n");
                     pv->markAddRemoveNotNeeded();
                     pv->vc->vcAdd(ctrlType);
                 }
