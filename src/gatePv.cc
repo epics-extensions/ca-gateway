@@ -1548,6 +1548,54 @@ void gatePvData::logEventCB(EVENT_ARGS args)
 	}
 }
 
+void gatePvData::propEventCB(EVENT_ARGS args)
+{
+    gatePvData* pv=(gatePvData*)ca_puser(args.chid);
+    gateDebug3(5,"gatePvData::propEventCB(gatePvData=%p)(gateVCData=%p) type=%d\n",
+      (void *)pv, (void*)pv->vc, (unsigned int)args.type);
+    gdd* dd;
+
+#ifdef RATE_STATS
+    ++pv->mrg->client_event_count;
+#endif
+
+    if(args.status==ECA_NORMAL)
+    {
+        // only sends event_data and does ADD transactions
+        if(pv->active())
+        {
+            gateDebug2(4,"gatePvData::propEventCB() %s PV %s runEventCB\n",pv->getStateName(),pv->name());
+            if ((dd = pv->runEventCB(&args)))  // Create the value gdd
+            {
+                gateDebug2(3,"gatePvData::propEventCB() %s PV %s setEventData\n",pv->getStateName(),pv->name());
+#if DEBUG_ENUM
+                dumpdd(1, "gatePvData::propEventCB setEventData", pv->name(), dd);
+#endif
+                gateDebug2(3,"gatePvData::propEventCB() %s PV %s setEventData\n",pv->getStateName(),pv->name());
+#if DEBUG_ENUM
+                dumpdd(1, "gatePvData::propEventCB setEventData", pv->name(), dd);
+#endif
+                // This dd will have an undefined timeStamp as it comes
+                // from a dbr_ctrl_* structure
+                pv->vc->setEventData(dd);   // Create new setPropData()???
+
+                if (pv->needAddRemove())
+                {
+                    gateDebug0(5,"gatePvData::propEventCB() need add/remove\n");
+                    pv->markAddRemoveNotNeeded();
+                    pv->vc->vcAdd(ctrlType);
+                }
+                else
+                {
+                    // Post the event
+                    pv->vc->vcPostEvent(pv->mrg->propertyEventMask());
+                }
+            }
+        }
+        ++(pv->event_count);
+    }
+}
+
 void gatePvData::propDataCB(EVENT_ARGS args)
 {
     gatePvData* pv=(gatePvData*)ca_puser(args.chid);
@@ -1596,54 +1644,6 @@ void gatePvData::propDataCB(EVENT_ARGS args)
                 dumpdd(1, "gatePvData::propDataCB setPvData", pv->name(), dd);
 #endif
                 pv->vc->setPvData(dd);
-            }
-        }
-        ++(pv->event_count);
-    }
-}
-
-void gatePvData::propEventCB(EVENT_ARGS args)
-{
-    gatePvData* pv=(gatePvData*)ca_puser(args.chid);
-    gateDebug3(5,"gatePvData::propEventCB(gatePvData=%p)(gateVCData=%p) type=%d\n",
-      (void *)pv, (void*)pv->vc, (unsigned int)args.type);
-    gdd* dd;
-
-#ifdef RATE_STATS
-    ++pv->mrg->client_event_count;
-#endif
-
-    if(args.status==ECA_NORMAL)
-    {
-        // only sends event_data and does ADD transactions
-        if(pv->active())
-        {
-            gateDebug2(4,"gatePvData::propEventCB() %s PV %s runEventCB\n",pv->getStateName(),pv->name());
-            if ((dd = pv->runEventCB(&args)))  // Create the value gdd
-            {
-                gateDebug2(3,"gatePvData::propEventCB() %s PV %s setEventData\n",pv->getStateName(),pv->name());
-#if DEBUG_ENUM
-                dumpdd(1, "gatePvData::propEventCB setEventData", pv->name(), dd);
-#endif
-                gateDebug2(3,"gatePvData::propEventCB() %s PV %s setEventData\n",pv->getStateName(),pv->name());
-#if DEBUG_ENUM
-                dumpdd(1, "gatePvData::propEventCB setEventData", pv->name(), dd);
-#endif
-                // This dd will have an undefined timeStamp as it comes
-                // from a dbr_ctrl_* structure
-                pv->vc->setEventData(dd);   // Create new setPropData()???
-
-                if (pv->needAddRemove())
-                {
-                    gateDebug0(5,"gatePvData::propEventCB() need add/remove\n");
-                    pv->markAddRemoveNotNeeded();
-                    pv->vc->vcAdd(ctrlType);
-                }
-                else
-                {
-                    // Post the event
-                    pv->vc->vcPostEvent(pv->mrg->propertyEventMask());
-                }
             }
         }
         ++(pv->event_count);
