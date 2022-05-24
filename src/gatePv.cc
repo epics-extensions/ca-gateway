@@ -1584,16 +1584,16 @@ void gatePvData::propDataCB(EVENT_ARGS args)
                 return;
             }
 
-            gateDebug1(3,"gatePvData::propEventCB() %s PV runDataCB\n",pv->getStateName());
+            gateDebug1(3,"gatePvData::propDataCB() %s PV runDataCB\n",pv->getStateName());
             if ((dd = pv->runDataCB(&args)))  // Create the attributes gdd
             {
 #if DEBUG_BEAM
                 printf("  dd=%p needAddRemove=%d\n", dd, pv->needAddRemove());
 #endif
                 // Update attribute cache
-                gateDebug2(3,"gatePvData::propEventCB() %s PV %s setPvData\n",pv->getStateName(),pv->name());
+                gateDebug2(3,"gatePvData::propDataCB() %s PV %s setPvData\n",pv->getStateName(),pv->name());
 #if DEBUG_ENUM
-                dumpdd(1, "gatePvData::propEventCB setPvData", pv->name(), dd);
+                dumpdd(1, "gatePvData::propDataCB setPvData", pv->name(), dd);
 #endif
                 pv->vc->setPvData(dd);
             }
