@@ -53,7 +53,7 @@ def setup():
     if 'TOP' in os.environ:
         gwLocation = os.path.join(os.environ['TOP'], '..')
     else:
-        print("Warning: TOP not set. Using default value of '..'")
+        print("Warning: TOP not set. Using default value of '../..'")
 
     gwExecutable = os.path.join(gwLocation, 'bin', hostArch, 'gateway')
     if not os.path.exists(gwExecutable):
