@@ -34,6 +34,7 @@ jobs:
       EXTRA: ${{ matrix.extra }}
       TEST: ${{ matrix.test }}
       SET: ${{ matrix.set }}
+      JUNIT_PREFIX: ${{ matrix.name }}_${{ matrix.os }}_
 
     strategy:
       fail-fast: false
@@ -149,18 +150,17 @@ jobs:
             name: "B-3.14 Ub-20 gcc-9, static"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - name: Automatic core dumper analysis
       uses: mdavidsaver/ci-core-dumper@master
       with:
         extra_gdb: "info auto-load;thread apply all py-bt-full"
-    - name: "apt-get install"
+    - name: apt-get install
       run: |
         sudo apt-get update
-        sudo apt-get -y install qemu-system-x86 g++-mingw-w64-x86-64 gdb python3-all-dbg
-        sudo pip install pyepics nose nose-tap
+        sudo apt-get -y install qemu-system-x86 g++-mingw-w64-x86-64 gdb
       if: runner.os == 'Linux'
     - name: "apt-get install ${{ matrix.cmp }}"
       run: |
@@ -169,16 +169,32 @@ jobs:
         sudo apt-get update
         sudo apt-get -y install ${{ matrix.utoolchain-install }}
       if: matrix.utoolchain
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Install Python test dependencies with pip
+      run: |
+        pip install pytest pytest-tap pyepics caproto
     - name: Prepare and compile dependencies
       run: python .ci/cue.py prepare
     - name: Build main module
       run: python .ci/cue.py build
     - name: Run main module tests
       run: python .ci/cue.py test
-    - name: Upload tapfiles Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: tapfiles ${{ matrix.name }}
-        path: '**/O.*/*.tap'
     - name: Collect and show test results
       run: python .ci/cue.py test-results
+    - name: Generate test summary
+      uses: test-summary/action@v2
+      with:
+        paths: |
+          testTop/pyTestsApp/O.*/*.xml
+      if: always()
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.name }} - test results
+        path: |
+          testTop/pyTestsApp/O.*/*.tap
+          testTop/pyTestsApp/O.*/*.xml
+          test-summary.md
+      if: always()
