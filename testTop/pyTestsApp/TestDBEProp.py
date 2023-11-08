@@ -55,9 +55,9 @@ class TestDBEProp(unittest.TestCase):
 
         for val in range(10):
             ioc.put(val, wait=True)
-        gwtests.wait_until(lambda: self.eventsReceivedGW == 1 and self.eventsReceivedIOC == 1, 5.0)
+        gwtests.wait_until(lambda: self.eventsReceivedGW == 2 and self.eventsReceivedIOC == 1, 5.0)
         # We get 1 event: at connection
-        self.assertTrue(self.eventsReceivedGW == 1, 'GW events expected: 1; received: ' + str(self.eventsReceivedGW))
+        self.assertTrue(self.eventsReceivedGW == 2, 'GW events expected: 2; received: ' + str(self.eventsReceivedGW))
         self.assertTrue(self.eventsReceivedIOC == 1, 'IOC events expected: 1; received: ' + str(self.eventsReceivedIOC))
 
         self.eventsReceived = 0
@@ -69,8 +69,8 @@ class TestDBEProp(unittest.TestCase):
 
         # Depending on the IOC (supporting PROPERTY changes on limits or not) we get 0 or 4 events.
         # Pass test if updates from IOC act the same as updates from GW
-        self.assertTrue(self.eventsReceivedGW == self.eventsReceivedIOC,
-            "Expected equal number of updates; received {0} from GW and {1} from IOC".format(self.eventsReceivedGW, self.eventsReceivedIOC))
+        self.assertTrue(self.eventsReceivedGW == (self.eventsReceivedIOC + 1),
+            "Expected GW updates to be one more than IOC; received {0} from GW and {1} from IOC".format(self.eventsReceivedGW, self.eventsReceivedIOC))
 
 
 if __name__ == '__main__':
