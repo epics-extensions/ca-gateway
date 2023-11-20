@@ -411,7 +411,6 @@ gateAsEntry* gateAs::findEntryInList(const char* pv, gateAsList& list) const
 
 int gateAs::readPvList(const char* lfile)
 {
-	int lev;
 	int line=0;
 	FILE* fd;
 	char inbuf[GATE_MAX_PVLIST_LINE_LENGTH];
@@ -448,7 +447,7 @@ int gateAs::readPvList(const char* lfile)
 
 	// Read all PV file lines
 	while(fgets(inbuf,sizeof(inbuf),fd)) {
-
+		int lev=1;
 
 		++line;
 		pattern=rname=hname=NULL;
