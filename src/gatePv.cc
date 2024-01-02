@@ -964,7 +964,7 @@ int gatePvData::get(readType read_type)
 					  	"for %s.\n"
                         "Set EPICS_CA_MAX_ARRAY_BYTES to at least %lu\n",
                         timeStamp(),name()?name():"Unknown",
-                              (unsigned long) bytes*totalElements() + sizeof(caHdr) + 2*sizeof(ca_uint32_t));
+                              (unsigned long)(bytes*totalElements() + sizeof(caHdr) + 2*sizeof(ca_uint32_t)));
 					}
 				}
 			}
@@ -989,7 +989,7 @@ int gatePvData::get(readType read_type)
 					  	"for %s.\n"
                         "Set EPICS_CA_MAX_ARRAY_BYTES to at least %lu\n",
                         timeStamp(),name()?name():"Unknown",
-                              (unsigned long) bytes*totalElements() + sizeof(caHdr) + 2*sizeof(ca_uint32_t));
+                              (unsigned long)(bytes*totalElements() + sizeof(caHdr) + 2*sizeof(ca_uint32_t)));
 					}
 				}
 			}
@@ -2038,7 +2038,7 @@ gdd* gatePvData::eventStringCB(EVENT_ARGS * pArgs)
 		// whereas the count=1 case uses aitString, which is a class.
 		// It is not commonly used, so if this implementation is
 		// wrong, it may be awhile before it is discovered.
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitFixedString *d, *nd;
         nd = new aitFixedString[maxCount];
 		d=(aitFixedString*)&ts->value;
@@ -2080,7 +2080,7 @@ gdd* gatePvData::eventEnumCB(EVENT_ARGS * pArgs)
 		// the menu strings, so this is an unwise thing to do.  Note
 		// that the menu strings (which don't exist for the waveform)
 		// are added in dataEnumCB.
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitEnum16 *d, *nd;
         nd = new aitEnum16[maxCount];
         d = (aitEnum16*)&ts->value;
@@ -2115,7 +2115,7 @@ gdd* gatePvData::eventLongCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitInt32 *d, *nd;
         nd = new aitInt32[maxCount];
         d = (aitInt32*)&ts->value;
@@ -2145,7 +2145,7 @@ gdd* gatePvData::eventCharCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitInt8 *d, *nd;
         nd = new aitInt8[maxCount];
         d = (aitInt8*)&(ts->value);
@@ -2175,7 +2175,7 @@ gdd* gatePvData::eventFloatCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitFloat32 *d, *nd;
         nd = new aitFloat32[maxCount];
         d = (aitFloat32*)&(ts->value);
@@ -2205,7 +2205,7 @@ gdd* gatePvData::eventDoubleCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitFloat64 *d, *nd;
         nd = new aitFloat64[maxCount];
         d = (aitFloat64*)&(ts->value);
@@ -2235,7 +2235,7 @@ gdd* gatePvData::eventShortCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitInt16 *d, *nd;
         nd = new aitInt16[maxCount];
         d = (aitInt16*)&(ts->value);
@@ -2298,7 +2298,7 @@ gdd* gatePvData::valueDataEnumCB(EVENT_ARGS * pArgs)
 		// the menu strings, so this is an unwise thing to do.  Note
 		// that the menu strings (which don't exist for the waveform)
 		// are added in dataEnumCB.
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitEnum16 *d, *nd;
         nd = new aitEnum16[maxCount];
         d = (aitEnum16*)&ts->value;
@@ -2331,7 +2331,7 @@ gdd* gatePvData::valueDataLongCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitInt32 *d, *nd;
         nd = new aitInt32[maxCount];
         d = (aitInt32*)&ts->value;
@@ -2360,7 +2360,7 @@ gdd* gatePvData::valueDataCharCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitInt8 *d, *nd;
         nd = new aitInt8[maxCount];
         d = (aitInt8*)&(ts->value);
@@ -2389,7 +2389,7 @@ gdd* gatePvData::valueDataFloatCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitFloat32 *d, *nd;
         nd = new aitFloat32[maxCount];
         d = (aitFloat32*)&(ts->value);
@@ -2418,7 +2418,7 @@ gdd* gatePvData::valueDataDoubleCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitFloat64 *d,*nd;
         nd = new aitFloat64[maxCount];
         d = (aitFloat64*)&(ts->value);
@@ -2453,7 +2453,7 @@ gdd* gatePvData::valueDataShortCB(EVENT_ARGS * pArgs)
 	// set up the value
     if (maxCount > 1)
 	{
-        aitIndex count = pArgs->count;
+        aitIndex count = ((aitUint32)pArgs->count > maxCount ? maxCount : pArgs->count);
         aitInt16 *d, *nd;
         nd = new aitInt16[maxCount];
         d = (aitInt16*)&(ts->value);
