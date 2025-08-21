@@ -824,9 +824,16 @@ static void convertContainerMemberToAtomic(
 		pVal = &dd;
 	}
 
-	if (count <= 1) {
-		return;
-	}
+	// The prototype pVal for a DBR_CTRL_* contains a "scalar" valued zero.
+	// The original code left that untouched unless the current value
+	// is an array with more than one element:
+	//    if (count <= 1) {
+	//        return;
+	//    }
+	// This overlooked the option where count = 0 and turned empty arrays
+	// into a scalar with value 0.
+	// Now we always update the pVal gddBounds to 0 ... count,
+	// regardless of count = 0, 1, 2, ...
 
 	// We can't changed a managed type that is already atomic (array).
 	if (!pVal->isScalar()) {
@@ -1155,7 +1162,7 @@ void gateVcData::vcPostEvent(casEventMask event_mask)
 #endif
 
 				postEvent(event_mask,*local_event_data);
-		
+
 #ifdef RATE_STATS
 				mrg->post_event_count++;
 #endif
