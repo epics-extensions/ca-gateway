@@ -96,9 +96,12 @@ extern "C" {
 	extern void logEventCB(EVENT_ARGS args) {        // log event callback
 		gatePvData::logEventCB(args);
 	}
-	extern void propEventCB(EVENT_ARGS args) {        // prop event callback
-		gatePvData::propEventCB(args);
-	}
+    extern void propDataCB(EVENT_ARGS args) {        // prop data event callback
+        gatePvData::propDataCB(args);
+    }
+    extern void propEventCB(EVENT_ARGS args) {        // prop value event callback
+        gatePvData::propEventCB(args);
+    }
 }
 
 // quick access to global_resources
@@ -855,17 +858,31 @@ int gatePvData::propMonitor(void)
         // gets native element count number of elements:
 
         if(ca_read_access(chID)) {
-            gateDebug1(5,"gatePvData::propMonitor() type=%ld\n",dataType());
+            // DBE_PROPERTY data subscription
+            gateDebug1(5,"gatePvData::propMonitor() dataType=%ld\n",dataType());
             rc=ca_create_subscription(dataType(),0,chID,DBE_PROPERTY,
-              ::propEventCB,this,&propID);
+              ::propDataCB,this,&propID);
             if(rc != ECA_NORMAL) {
                 fprintf(stderr,"%s gatePvData::propMonitor: "
                   "ca_create_subscription failed for %s:\n"
                   " %s\n",
                   timeStamp(),name()?name():"Unknown",ca_message(rc));
                 rc=-1;
-            } else {
-                rc=0;
+            }
+
+            // DBE_PROPERTY event subscription
+            gateDebug1(5,"gatePvData::propMonitor() eventType=%ld\n",eventType());
+            rc=ca_create_subscription(eventType(),0,chID,DBE_PROPERTY,
+              ::propEventCB,this,&propID);
+            if(rc != ECA_NORMAL) {
+                fprintf(stderr,"%s gatePvData::propMonitor: "
+                  "ca_create_subscription event failed for %s:\n"
+                  " %s\n",
+                  timeStamp(),name()?name():"Unknown",ca_message(rc));
+                rc=-1;
+            }
+
+            if(rc==0) {
                 markPropMonitored();
 #if OMIT_CHECK_EVENT
 #else
@@ -1542,50 +1559,17 @@ void gatePvData::propEventCB(EVENT_ARGS args)
     ++pv->mrg->client_event_count;
 #endif
 
-#if DEBUG_BEAM
-    printf("gatePvData::propEventCB(): status=%d %s\n",
-      args.status,
-      pv->name());
-#endif
-
-#if DEBUG_DELAY
-    if(!strncmp("Xorbit",pv->name(),6)) {
-        printf("%s gatePvData::propEventCB: %s state=%d\n",timeStamp(),pv->name(),
-          pv->getState());
-    }
-#endif
-
     if(args.status==ECA_NORMAL)
     {
         // only sends event_data and does ADD transactions
         if(pv->active())
         {
-            gateDebug3(5,"gatePvData::propEventCB() %s PV %s propGetPending %d\n",pv->getStateName(),pv->name(),pv->propGetPending());
-            if(pv->propGetPending()) {
-                gateDebug1(5,"gatePvData::propEventCB() Ignore first propEvent %s PV\n",pv->getStateName());
-                pv->markPropNoGetPending();
-                return;
-            }
-
-            gateDebug1(3,"gatePvData::propEventCB() %s PV runDataCB\n",pv->getStateName());
-            if ((dd = pv->runDataCB(&args)))  // Create the attributes gdd
+            gateDebug2(4,"gatePvData::propEventCB() %s PV %s runEventCB\n",pv->getStateName(),pv->name());
+            if ((dd = pv->runEventCB(&args)))  // Create the value gdd
             {
-#if DEBUG_BEAM
-                printf("  dd=%p needAddRemove=%d\n", dd, pv->needAddRemove());
-#endif
-                // Update attribute cache
-                gateDebug2(3,"gatePvData::propEventCB() %s PV %s setPvData\n",pv->getStateName(),pv->name());
+                gateDebug2(3,"gatePvData::propEventCB() %s PV %s setEventData\n",pv->getStateName(),pv->name());
 #if DEBUG_ENUM
-                dumpdd(1, "gatePvData::propEventCB setPvData", pv->name(), dd);
-#endif
-                pv->vc->setPvData(dd);
-            }
-
-            gateDebug2(4,"gatePvData::propEventCB() %s PV %s runValueDataCB\n",pv->getStateName(),pv->name());
-            if ((dd = pv->runValueDataCB(&args)))  // Create the value gdd
-            {
-#if DEBUG_BEAM
-                printf("  dd=%p needAddRemove=%d\n", dd, pv->needAddRemove());
+                dumpdd(1, "gatePvData::propEventCB setEventData", pv->name(), dd);
 #endif
                 gateDebug2(3,"gatePvData::propEventCB() %s PV %s setEventData\n",pv->getStateName(),pv->name());
 #if DEBUG_ENUM
@@ -1606,6 +1590,60 @@ void gatePvData::propEventCB(EVENT_ARGS args)
                     // Post the event
                     pv->vc->vcPostEvent(pv->mrg->propertyEventMask());
                 }
+            }
+        }
+        ++(pv->event_count);
+    }
+}
+
+void gatePvData::propDataCB(EVENT_ARGS args)
+{
+    gatePvData* pv=(gatePvData*)ca_puser(args.chid);
+    gateDebug3(5,"gatePvData::propDataCB(gatePvData=%p)(gateVCData=%p) type=%d\n",
+      (void *)pv, (void*)pv->vc, (unsigned int)args.type);
+    gdd* dd;
+
+#ifdef RATE_STATS
+    ++pv->mrg->client_event_count;
+#endif
+
+#if DEBUG_BEAM
+    printf("gatePvData::propDataCB(): status=%d %s\n",
+      args.status,
+      pv->name());
+#endif
+
+#if DEBUG_DELAY
+    if(!strncmp("Xorbit",pv->name(),6)) {
+        printf("%s gatePvData::propDataCB: %s state=%d\n",timeStamp(),pv->name(),
+          pv->getState());
+    }
+#endif
+
+    if(args.status==ECA_NORMAL)
+    {
+        // only sends event_data and does ADD transactions
+        if(pv->active())
+        {
+            gateDebug3(5,"gatePvData::propDataCB() %s PV %s propGetPending %d\n",pv->getStateName(),pv->name(),pv->propGetPending());
+            if(pv->propGetPending()) {
+                gateDebug1(5,"gatePvData::propDataCB() Ignore first propEvent %s PV\n",pv->getStateName());
+                pv->markPropNoGetPending();
+                return;
+            }
+
+            gateDebug1(3,"gatePvData::propDataCB() %s PV runDataCB\n",pv->getStateName());
+            if ((dd = pv->runDataCB(&args)))  // Create the attributes gdd
+            {
+#if DEBUG_BEAM
+                printf("  dd=%p needAddRemove=%d\n", dd, pv->needAddRemove());
+#endif
+                // Update attribute cache
+                gateDebug2(3,"gatePvData::propDataCB() %s PV %s setPvData\n",pv->getStateName(),pv->name());
+#if DEBUG_ENUM
+                dumpdd(1, "gatePvData::propDataCB setPvData", pv->name(), dd);
+#endif
+                pv->vc->setPvData(dd);
             }
         }
         ++(pv->event_count);

@@ -76,17 +76,18 @@ class TestCSStudio(unittest.TestCase):
         (ioc_cbref, ioc_uaref, ioc_eventid) = ca.create_subscription(ioc, mask=dbr.DBE_VALUE | dbr.DBE_ALARM, use_time=True, callback=self.onChangeIOC)
         (ioc_cbref2, ioc_uaref2, ioc_eventid2) = ca.create_subscription(ioc, mask=dbr.DBE_PROPERTY, use_ctrl=True, callback=self.onChangeIOC)
 
-        gwtests.wait_until(lambda: self.eventsReceivedIOC == 2 and self.eventsReceivedGW == 2, 5.0)
+        gwtests.wait_until(lambda: self.eventsReceivedIOC == 2 and self.eventsReceivedGW == 3, 5.0)
 
         # set value on IOC
         ioc_value = ca.create_channel("ioc:gwcachetest")
         ca.put(ioc_value, 10.0, wait=True)
         if gwtests.verbose:
             print("Wrote value 10.0 to ioc:gwcachetest")
+            sys.stdout.flush()
 
-        gwtests.wait_until(lambda: self.eventsReceivedIOC == self.eventsReceivedGW, 5.0)
-        self.assertTrue(self.eventsReceivedIOC == self.eventsReceivedGW,
-        "After setting value, no. of received updates differ: GW {0}, IOC {1}"
+        gwtests.wait_until(lambda: self.eventsReceivedIOC == 3 and self.eventsReceivedGW == 4, 5.0)
+        self.assertTrue(self.eventsReceivedIOC == 3 and self.eventsReceivedGW == 4,
+        "After setting value, no. of received updates wrong: GW {0}, IOC {1}"
         .format(str(self.eventsReceivedGW), str(self.eventsReceivedIOC)))
 
         (are_diff, diffs) = self.compareStructures()
@@ -99,13 +100,16 @@ class TestCSStudio(unittest.TestCase):
         ca.put(ioc_hihi, 123.0, wait=True)
         if gwtests.verbose:
             print("Wrote value 123.0 to ioc:gwcachetest.HIHI")
+            sys.stdout.flush()
+
         ca.put(ioc_value, 11.0, wait=True)
         if gwtests.verbose:
             print("Wrote value 11.0 to ioc:gwcachetest")
+            sys.stdout.flush()
 
-        gwtests.wait_until(lambda: self.eventsReceivedIOC == self.eventsReceivedGW, 5.0)
-        self.assertTrue(self.eventsReceivedIOC == self.eventsReceivedGW,
-        "After setting property, no. of received updates differ: GW {0}, IOC {1}"
+        gwtests.wait_until(lambda: self.eventsReceivedIOC == 5 and self.eventsReceivedGW == 6, 5.0)
+        self.assertTrue(self.eventsReceivedIOC == 5 and self.eventsReceivedGW == 6,
+        "After setting property, no. of received updates wrong: GW {0}, IOC {1}"
         .format(str(self.eventsReceivedGW), str(self.eventsReceivedIOC)))
 
         (are_diff, diffs) = self.compareStructures()
