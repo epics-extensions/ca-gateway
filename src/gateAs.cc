@@ -253,14 +253,22 @@ gateAsClient::gateAsClient(void) :
 }
 
 gateAsClient::gateAsClient(gateAsEntry *pEntry, const char *user,
-  const char *host) :
+  const char *host
+#ifdef EPICS_HAS_AS_IPAG
+  ,epicsUInt32 ip_addr
+#endif
+  ) :
 	asclientpvt(NULL),
 	asentry(pEntry),
 	user_arg(NULL),
 	user_func(NULL)
 {
-	if(pEntry&&asAddClient(&asclientpvt,pEntry->asmemberpvt,pEntry->level,
-		 (char*)user,(char*)host) == 0) {
+	if(pEntry && asAddClient(&asclientpvt,pEntry->asmemberpvt,pEntry->level,
+		                 (char*)user ,(char*)host
+#ifdef EPICS_HAS_AS_IPAG
+                                 ,ip_addr
+#endif
+                                ) == 0) {
 		asPutClientPvt(asclientpvt,this);
 	}
 
