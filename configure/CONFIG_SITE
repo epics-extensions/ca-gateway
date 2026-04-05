@@ -12,24 +12,23 @@
 # CA Gateway specific settings
 #######################################################################
 
-# Use Perl compatible regular expressions (PCRE) instead of basic regex
-#USE_PCRE=YES
+# Use Perl compatible regular expressions (PCRE2) instead of basic regex
+#USE_PCRE2=YES
 
-# For PCRE on Linux
-#    requires package pcre-devel (or libpcre3-dev) for compiling
-#    requires package pcre (or libpcre3) for running the Gateway
+# For PCRE2 on Linux
+#    requires package libpcre2-dev (or pcre2-devel) for compiling
+#    requires package libpcre2-8 (or pcre2) for running the Gateway
 
 ifeq ($(OS_CLASS),WIN32)
 
-    # For PCRE on Windows
-    #    install libraries and includes from
-    #    https://sourceforge.net/projects/gnuwin32/files/pcre/7.0/pcre-7.0.exe/download
-    #    and set the install location here
-    PCRE_DIR=C:/Pcre
+    # For PCRE2 on Windows
+    #    PCRE2 releases are at https://github.com/PCRE2Project/pcre2/releases
+    #    install libraries and includes and set the install location here
+    PCRE_DIR=C:/Pcre2
 
     # For REGEX on Windows
     #    compile gnuregex inside an EPICS support module from the sources at
-    #    http://www.aps.anl.gov/epics/download/extensions/gnuregex0_13.tar.gz
+    #    https://epics.anl.gov/download/extensions/gnuregex0_13.tar.gz
     #    and set the module location here
     REGEX_DIR=C:/epics/modules/regex
 

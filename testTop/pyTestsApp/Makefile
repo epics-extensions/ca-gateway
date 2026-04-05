@@ -14,8 +14,8 @@ TAPFILES = testresults.tap
 TEST_FILES += test.db
 TEST_FILES += access.txt
 
-# Which pvlist.txt file depends on USE_PCRE
-USE_PCRE ?= NO
+# Which pvlist.txt file depends on USE_PCRE2
+USE_PCRE2 ?= NO
 PVLIST_YES = pvlist_pcre.txt
 PVLIST_NO = pvlist_bre.txt
 
@@ -64,8 +64,8 @@ testmodule: $(TEST_SCRIPTS)
 	$(ECHO) "Copying test module $(TEST_MODULE)"
 	@$(CP) -r ../$(TEST_MODULE) ./
 
-pvlist.txt: ../$(PVLIST_$(USE_PCRE))
-	$(ECHO) "Copying $< to $@ (USE_PCRE: $(USE_PCRE))"
+pvlist.txt: ../$(PVLIST_$(USE_PCRE2))
+	$(ECHO) "Copying $< to $@ (USE_PCRE2: $(USE_PCRE2))"
 	@$(CP) $< $@
 
 .PHONY: build runtests testmodule testfiles clean
