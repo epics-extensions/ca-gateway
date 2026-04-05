@@ -435,7 +435,7 @@ later.
       <td>-no_cache</td>
       <td>Do not use cached (monitored) values when a client does ca_get.
         This results in higher network traffic to the IOC but returns always
-        the current value, even if no monitor event had been send 
+        the current value, even if no monitor event had been send
         (e.g. because of a MDEL). This also solves problems with record
         fields like HOPR or EGU if they are modified during run-time.
       </td>
@@ -625,11 +625,12 @@ distribution may be more recent.</p>
 what process variable name patterns are allowed or denied and to optionally
 associate patterns with access security groups and security levels in the
 access file. The patterns are either Perl compatible regular expressions
-(PCRE) or GNU-style regular expressions, depending on the USE_PCRE variable
-in Makefile. (See a UNIX book for more information about regular expressions.)
-In addition, inverted regular experessions (starting with !) are supported
+(PCRE2) or GNU-style regular expressions, depending on the USE_PCRE2 variable
+in Makefile.</p>
+
+<p>In addition, inverted regular experessions (starting with !) are supported
 depending on the USE_NEG_REGEXP variable in Makefile. For compatibility
-with earlier versions of the gateway, PCRE and inverted regular expressions
+with earlier versions of the gateway, PCRE2 and inverted regular expressions
 are disable by default. There is a sample file,
 gateway.pvlist, in the source distribution and reproduced <a
 href="GATEWAY.pvlist">here</a> to get you started. The version in the

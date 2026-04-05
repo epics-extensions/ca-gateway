@@ -45,8 +45,9 @@ extern "C" {
 #include "tsHash.h"
 #include "aitTypes.h"
 
-#ifdef USE_PCRE
-#include <pcre.h>
+#ifdef USE_PCRE2
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 #else
 
 extern "C" {
@@ -65,7 +66,7 @@ extern "C" {
 #endif
 }
 
-#endif /* USE_PCRE */
+#endif /* USE_PCRE2 */
 /*
  * Standard FALSE and TRUE macros
  */
@@ -121,18 +122,19 @@ public:
 #endif
 	long removeMember(void);
 
-	void getRealName(const char* pv, char* real, int len);
+        void getRealName(const char* pv, char* real, size_t len);
 
-	const char* pattern;
+        const char* pattern;
 	const char* alias;
 	const char* group;
 	int level;
 	ASMEMBERPVT asmemberpvt;
-#ifdef USE_PCRE
-	pcre* pat_buff;
+#ifdef USE_PCRE2
+	pcre2_code* pat_buff;
+	pcre2_match_data* match_data;
 	int substrings;
-	int ovecsize;
-	int *ovector;
+	size_t ovecsize;
+	size_t *ovector;
 #else
 	char pat_valid;
 	struct re_pattern_buffer pat_buff;

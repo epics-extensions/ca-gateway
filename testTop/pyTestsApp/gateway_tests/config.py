@@ -33,7 +33,7 @@ default_gateway_port = 62783
 default_putlog_port = 45635
 default_access = os.environ.get("GATEWAY_ACCESS", str(WORKING_DIRECTORY / "access.txt"))
 
-use_pcre = _boolean_option(os.environ.get("USE_PCRE", ""))
+use_pcre = _boolean_option(os.environ.get("USE_PCRE2", ""))
 default_pvlist = os.environ.get("GATEWAY_PVLIST", str(WORKING_DIRECTORY / "pvlist.txt"))
 test_ioc_db = os.environ.get("TEST_DB", str(WORKING_DIRECTORY / "test.db"))
 

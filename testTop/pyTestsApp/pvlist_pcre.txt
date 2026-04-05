@@ -1,4 +1,4 @@
-# gwlist file for Gateway tests - using PCRE
+# gwlist file for Gateway tests - using PCRE2
 #
 # Convert gateway: prefix to ioc: prefix on IOC side
 # Do NOT serve the IOC channels under their original name
