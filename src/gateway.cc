@@ -105,6 +105,7 @@ void operator delete(void* x)
 //	-command file_name = USR1 command list file
 //	-putlog file_name = putlog file
 //  -caputlog = address (IP:port) for caPutLog server
+//  -caputlogjson = address (IP:port) for caPutLog server (json format)
 //	-report file_name = report file
 //	-home directory = the program's home directory
 //	-connect_timeout number = clear PV connect requests every number seconds
@@ -172,6 +173,7 @@ void operator delete(void* x)
 #define PARM_ARCHIVE		  27
 #ifdef WITH_CAPUTLOG
   #define PARM_CAPUTLOG       28
+  #define PARM_CAPUTLOGJSON   29
 #endif
 
 #define HOME_DIR_SIZE    300
@@ -192,6 +194,7 @@ static const char *putlog_file=NULL;
 static const char *report_file=NULL;
 #ifdef WITH_CAPUTLOG
 static const char *caputlog_address=NULL;
+static bool caputlog_json=false;
 #endif
 #ifndef _WIN32
 static pid_t parent_pid;
@@ -215,6 +218,7 @@ static PARM_STUFF ptable[] = {
     { "-command",             8, PARM_COMMAND,     "file_name" },
     { "-putlog",              7, PARM_PUTLOG,      "file_name" },
 #ifdef WITH_CAPUTLOG
+    { "-caputlogjson",       13, PARM_CAPUTLOGJSON, "address (ip:port)" },
     { "-caputlog",            9, PARM_CAPUTLOG,    "address (ip:port)" },
 #endif
     { "-report",              7, PARM_REPORT,      "file_name" },
@@ -423,7 +427,8 @@ static int startEverything(char *prefix)
 	fprintf(fp,"# command file=<%s>\n",global_resources->commandFile());
 	fprintf(fp,"# putlog file=<%s>\n",global_resources->putlogFile());
 #ifdef WITH_CAPUTLOG
-	fprintf(fp,"# caputlog address=<%s>\n",global_resources->caputlogAddress());
+    fprintf(fp,"# caputlog address=<%s>\n",global_resources->caputlogAddress());
+    fprintf(fp,"# caputlog format=<%s>\n",global_resources->caputlogJson() ? "json" : "plain");
 #endif
 	fprintf(fp,"# report file=<%s>\n",global_resources->reportFile());
 	fprintf(fp,"# debug level=%d\n",global_resources->debugLevel());
@@ -860,7 +865,9 @@ int main(int argc, char** argv)
 					}
 					break;
 #ifdef WITH_CAPUTLOG
-				case PARM_CAPUTLOG:
+                case PARM_CAPUTLOGJSON:
+                    caputlog_json = true;
+                case PARM_CAPUTLOG:
 					if(++i>=argc) no_error=0;
 					else {
 						if(argv[i][0]=='-') no_error=0;
@@ -1101,6 +1108,7 @@ int main(int argc, char** argv)
 		fprintf(stderr,"\tputlog=%s\n",gr->putlogFile());
 #ifdef WITH_CAPUTLOG
 		fprintf(stderr,"\tcaputlog=%s\n",gr->caputlogAddress());
+        fprintf(stderr,"\tcaputlogformat=%s\n",gr->caputlogJson() ? "json" : "plain");
 #endif
 		fprintf(stderr,"\treport=%s\n",gr->reportFile());
 		fprintf(stderr,"\tdead=%ld\n",gr->deadTimeout());
@@ -1155,6 +1163,7 @@ int main(int argc, char** argv)
 	if(putlog_file)	    	gr->setPutlogFile(putlog_file);
 #ifdef WITH_CAPUTLOG
 	if(caputlog_address)  	gr->setCaPutlogAddress(caputlog_address);
+    gr->setCaPutlogJson(caputlog_json);
 #endif
 	if(report_file)	    	gr->setReportFile(report_file);
 
@@ -1307,7 +1316,8 @@ int main(int argc, char** argv)
 		fprintf(stderr," command file = <%s>\n",gr->commandFile());
 		fprintf(stderr," putlog file = <%s>\n",gr->putlogFile());
 #ifdef WITH_CAPUTLOG
-		fprintf(stderr," caputlog address = <%s>\n",gr->caputlogAddress());
+        fprintf(stderr," caputlog address = <%s>\n",gr->caputlogAddress());
+        fprintf(stderr," caputlog format = <%s>\n",gr->caputlogJson() ? "json": "plain");
 #endif
 		fprintf(stderr," report file = <%s>\n",gr->reportFile());
 		fprintf(stderr," debug level = %d\n",gr->debugLevel());
@@ -1382,6 +1392,12 @@ static void print_instructions(void)
 
 	pr(stderr,"-putlog file_name: Name of file where gateway put logging goes.\n");
 	pr(stderr," Put logging is specified with TRAPWRITE in the access file.\n\n");
+
+#ifdef WITH_CAPUTLOG
+    pr(stderr,"-caputlog ip_addr:port: Address of log server for gateway put logging.\n");
+    pr(stderr,"-caputlogjson ip_addr:port: Address of log server for JSON gateway put logging.\n");
+    pr(stderr," Put logging is specified with TRAPWRITE in the access file.\n\n");
+#endif
 
 	pr(stderr,"-report file_name: Name of file where gateway reports go.\n");
 	pr(stderr," Reports are appended to this file if it exists.\n\n");

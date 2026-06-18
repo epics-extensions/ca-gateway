@@ -202,6 +202,37 @@ static int gddToVALUE(const gdd *gddVal, short dbfld_dbrtype, VALUE *valueStruct
    return(0);
 }
 
+static int gddArrayToVALUE(const gdd *gddVal, short dbfld_dbrtype, VALUE *valueStruct)
+{
+    memset(valueStruct, 0, sizeof(VALUE));
+    if (dbfld_dbrtype == DBFLD::D_CHAR) {
+        memcpy(valueStruct->a_int8, gddVal->dataPointer(0), caPutLogMaxArraySize(dbfld_dbrtype) * sizeof(valueStruct->a_int8[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_UCHAR) {
+        memcpy(valueStruct->a_uint8, gddVal->dataPointer(0), caPutLogMaxArraySize(dbfld_dbrtype) * sizeof(valueStruct->a_uint8[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_SHORT) {
+        memcpy(valueStruct->a_int16, gddVal->dataPointer(0), caPutLogMaxArraySize(dbfld_dbrtype) * sizeof(valueStruct->a_int16[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_USHORT) {
+        memcpy(valueStruct->a_uint16, gddVal->dataPointer(0), caPutLogMaxArraySize(dbfld_dbrtype) * sizeof(valueStruct->a_uint16[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_LONG) {
+        memcpy(valueStruct->a_int32, gddVal->dataPointer(0), caPutLogMaxArraySize(dbfld_dbrtype) * sizeof(valueStruct->a_int32[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_ULONG) {
+        memcpy(valueStruct->a_uint32, gddVal->dataPointer(0), caPutLogMaxArraySize(dbfld_dbrtype) * sizeof(valueStruct->a_uint32[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_FLOAT) {
+        memcpy(valueStruct->a_float, gddVal->dataPointer(0), caPutLogMaxArraySize(dbfld_dbrtype) * sizeof(valueStruct->a_float[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_DOUBLE) {
+        memcpy(valueStruct->a_double, gddVal->dataPointer(0), caPutLogMaxArraySize(dbfld_dbrtype) * sizeof(valueStruct->a_double[0]));
+    } else { // DBFLD::D_STRING and unknown
+        aitString x[caPutLogMaxArraySize(DBFLD::D_STRING)];
+        gddVal->get(x);
+        size_t siz = sizeof(valueStruct->v_string);
+        strncpy(valueStruct->v_string,x,siz);
+        valueStruct->v_string[siz-1] = 0;
+    }
+    return(0);
+}
+
+
+
 /*
  * VALUE_to_string(): convert VALUE to string
  */
@@ -329,6 +360,7 @@ gateResources::gateResources(void)
 	putlog_file=NULL;
 #ifdef WITH_CAPUTLOG
     caputlog_address=NULL;
+    caputlog_json=false;
 #endif
 	putlogFp=NULL;
 	report_file=strDup(GATE_REPORT_FILE);
@@ -421,7 +453,12 @@ int gateResources::setCaPutlogAddress(const char* address)
 int gateResources::caPutLog_Init(void)
 {
   if (caputlog_address) {
-    return caPutLogINIT(caputlog_address, caPutLogAll);
+    if (caputlog_json) {
+      CaPutJsonLogTask *logger =  CaPutJsonLogTask::getInstance();
+      if (logger != NULL) return logger->initialize(caputlog_address, caPutJsonLogAll, 0.0);
+    } else {
+      return caPutLogINIT(caputlog_address, caPutLogAll);
+    }
   }
   return 1;
 }
@@ -451,8 +488,20 @@ void gateResources::caPutLog_Send
   strcpy(pdata->pv_name,pvname);
   pdata->pfield = (void *) pvname;
   pdata->type = gddGetOurType(new_value);
-  gddToVALUE(new_value,pdata->type,&pdata->new_value.value);
   new_value->getTimeStamp(&pdata->new_value.time);
+  //TODO
+  // find out if gdd is an array
+  // set new_log_size to the original no of elements
+  // set new_size to the actual caPutLog-reduced number of elements
+  pdata->is_array = (new_value->dimension() == 1);
+  if (pdata->is_array) {
+    aitIndex first, count;
+    new_value->getBound(1, first, count);
+    pdata->new_size = static_cast<int>(count);
+    pdata->new_log_size = caPutLogMaxArraySize(pdata->type);
+  } else {
+    gddToVALUE(new_value,pdata->type,&pdata->new_value.value);
+  }
   if ((old_value) && (old_value->primitiveType() != aitEnumInvalid) && (gddGetOurType(old_value) == pdata->type)) {
     gddToVALUE(old_value,pdata->type,&pdata->old_value);
   } else {
@@ -460,7 +509,12 @@ void gateResources::caPutLog_Send
     // as there's no way to flag a VALUE struct as invalid
     memcpy(&pdata->old_value,&pdata->new_value.value,sizeof(VALUE));
   }
-  caPutLogTaskSend(pdata);
+  if (caputlog_json) {
+    CaPutJsonLogTask *instance = CaPutJsonLogTask::getInstance();
+    instance->addPutToQueue(pdata);
+  } else {
+    caPutLogTaskSend(pdata);
+  }
 }
 
 void gateResources::putLog(
