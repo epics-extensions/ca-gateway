@@ -1113,6 +1113,11 @@ int gatePvData::put(const gdd & dd, class gateAsyncW * pWIO )
 #endif
 			if(!cbid) return S_casApp_noMemory;
 			callback_list.add(*cbid);
+			// Establish the bidirectional link so that if this
+			// gateAsyncW is destroyed (server-side client disconnect)
+			// before the put callback returns, it can NULL the raw
+			// pointer stored in cbid (avoids a use-after-free in putCB).
+			pWIO->setCallbackId(cbid);
 #if DEBUG_SLIDER
 			printf("  ca_array_put_callback [%d]: %g\n",
 			  callback_list.count(),*(double *)pValue);
@@ -1368,6 +1373,10 @@ void gatePvData::putCB(EVENT_ARGS args)
 	pv->callback_list.remove(*cbid);
 	gateAsyncW * pWIO = reinterpret_cast < gateAsyncW * >
 				( cbid->getPrivatePtr () );
+	// If pWIO is non-NULL it is still alive (its destructor would have
+	// cleared this pointer otherwise); break the back-link before deleting
+	// cbid so ~gateAsyncW() cannot touch this freed callback id later.
+	if (pWIO) pWIO->clearCallbackId();
 	delete cbid;
 
 	if (!pWIO) return;

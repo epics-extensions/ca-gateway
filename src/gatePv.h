@@ -89,6 +89,10 @@ public:
 	unsigned long getID(void) const { return id; }
 	gatePvData *getPV(void) const { return pv; }
 	void * getPrivatePtr () const { return pPrivate; }
+	// Called by ~gateAsyncW() when the referenced async write IO is
+	// destroyed (e.g. server-side client disconnect) so that a later
+	// putCB() does not dereference a dangling pointer.
+	void clearPrivatePtr () { pPrivate = 0; }
 private:
 	unsigned long id;
 	gatePvData *pv;

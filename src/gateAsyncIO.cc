@@ -50,6 +50,13 @@ gateAsyncR::~gateAsyncR(void)
 gateAsyncW::~gateAsyncW(void)
 {
 	gateDebug0(10,"~gateAsyncW()\n");
+	// If a gatePvCallbackId still references this object,
+	// NULL out its raw pointer so a later gatePvData::putCB()
+	// does not dereference this freed object.
+	if ( _pCbId ) {
+		_pCbId->clearPrivatePtr ();
+		_pCbId = 0;
+	}
 	listRemove ();
 }
 

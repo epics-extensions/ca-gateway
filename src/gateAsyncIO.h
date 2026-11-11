@@ -28,6 +28,7 @@
 #include "smartGDDPointer.h"
 
 class gateVcData;
+class gatePvCallbackId;
 
 // ---------------------- async exist test pending
 
@@ -83,7 +84,8 @@ public:
 	  casAsyncWriteIO(ctx),
 	  _pList(0),
 	  _pDD(wdd),
-	  _isPutNotify(isPutNotify) {}
+	  _isPutNotify(isPutNotify),
+	  _pCbId(0) {}
 
 	virtual ~gateAsyncW(void);
 
@@ -91,10 +93,14 @@ public:
 	bool isPutNotify () const { return _isPutNotify; }
 	void listAdd ( tsDLList<gateAsyncW> & list );
 	void listRemove ();
+	// avoid a use-after-free in gatePvData::putCB().
+	void setCallbackId ( gatePvCallbackId * p ) { _pCbId = p; }
+	void clearCallbackId () { _pCbId = 0; }
 private:
 	tsDLList<gateAsyncW> * _pList;
 	smartConstGDDPointer _pDD;
 	bool _isPutNotify;
+	gatePvCallbackId * _pCbId;
 };
 
 inline void gateAsyncW :: listAdd ( tsDLList<gateAsyncW> & list )
