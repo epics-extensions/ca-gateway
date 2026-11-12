@@ -46,6 +46,7 @@ def run_process(
     startup_time: float = 0.5,
     wait_for: Optional[bytes] = None,
     quiescence_period: float = 0.0,
+    must_survive: bool = False,
 ):
     """
     Run ``cmd`` and yield a subprocess.Popen instance.
@@ -92,7 +93,7 @@ def run_process(
                 # to indicate the process is ready.
                 event.set()
 
-        stdout = b"".join(lines)
+        stdout = b"".join(lines + startup_lines)
         if verbose:
             logger.warning(
                 "Read %d bytes from %s in %.1f sec",
@@ -117,9 +118,12 @@ def run_process(
 
     # Wait for the "ready" message event, up to ``startup_time`` seconds
     event.wait(startup_time)
+    died_early = None
     try:
         yield proc
     finally:
+        if must_survive:
+            died_early = proc.poll()
         if quiescence_period > 0:
             logger.debug("Waiting for quiescence period of %.1f sec", quiescence_period)
             time.sleep(quiescence_period)
@@ -133,6 +137,10 @@ def run_process(
         proc.wait()
         logger.info("Process %s exited", cmd[0])
         slurp.join()
+    if died_early is not None:
+        raise RuntimeError(
+            f"{cmd[0]} died during the test (exit status {died_early})"
+        )
 
 @contextlib.contextmanager
 def run_ioc(
@@ -262,6 +270,7 @@ def run_gateway(
         interactive=False,
         wait_for=b"Running as user",
         quiescence_period=quiescence_period,
+        must_survive=True,
     ) as proc:
         yield proc
 
