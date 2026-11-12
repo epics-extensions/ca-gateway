@@ -1,0 +1,19 @@
+# Documentation for this file: https://EditorConfig.org
+
+root = true
+
+# Unix-style newlines ending every file,
+# as some compilers complain about files not ending in newline
+[*]
+insert_final_newline = true
+
+# Enforce consistent space indent style in source code
+# and remove all trailing spaces
+[*.{c,cc,cpp,h,hpp,pl,py,yml}]
+indent_style = space
+trim_trailing_whitespace = true
+
+# Makefiles need [tab] characters
+[[Mm]akefile*]
+indent_style = tab
+indent_size = 8
