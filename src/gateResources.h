@@ -128,6 +128,8 @@ public:
 #ifdef WITH_CAPUTLOG
 	int setCaPutlogAddress(const char* address);
 	const char* caputlogAddress(void) const	{ return caputlog_address?caputlog_address:"NULL"; }
+    void setCaPutlogJson(bool json) { caputlog_json = json;}
+    const bool caputlogJson(void) const { return caputlog_json; }
     int hasCaPutlogAddress(void) const { return caputlog_address?1:0; }
 	int caPutLog_Init(void);
     void caPutLog_Send(const char *user,
@@ -158,6 +160,7 @@ private:
 	char *access_file, *pvlist_file, *command_file, *putlog_file, *report_file;
 #ifdef WITH_CAPUTLOG
     char *caputlog_address;
+    bool caputlog_json;
 #endif
 	int debug_level, ro;
 	bool serverMode;
