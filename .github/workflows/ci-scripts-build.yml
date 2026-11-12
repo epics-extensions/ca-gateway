@@ -36,6 +36,7 @@ jobs:
       SET: ${{ matrix.set }}
       JUNIT_PREFIX: ${{ matrix.name }}_${{ matrix.os }}_
       SKIP_CAPUTLOG_TESTS: ${{ matrix.skip_caputlog }}
+      ASAN_OPTIONS: ${{ matrix.asan_options }}
 
     strategy:
       fail-fast: false
@@ -66,6 +67,15 @@ jobs:
             configuration: default
             set: "base-7.0"
             name: "B-7.0 Ub-24 clang-18"
+
+          # Gateway built with AddressSanitizer (dependencies uninstrumented)
+          - os: ubuntu-24.04
+            cmp: gcc
+            configuration: default
+            extra: "'CMD_CXXFLAGS=-fsanitize=address -fno-omit-frame-pointer' CMD_LDFLAGS=-fsanitize=address"
+            asan_options: "detect_leaks=0"
+            set: "base-7.0"
+            name: "B-7.0 Ub-24 gcc-13 ASan"
 
           - os: ubuntu-24.04
             cmp: clang
