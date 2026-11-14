@@ -258,6 +258,10 @@ gatePvData::~gatePvData(void)
 	while((id=callback_list.first()))
 	{
 		callback_list.remove(*id);
+		// Break the two-way link so a still-alive gateAsyncW does not
+		// dereference this callback id after we delete it.
+		gateAsyncW *pWIO = id->getPrivatePtr();
+		if (pWIO) pWIO->clearCallbackId();
 		delete id;
 	}
 
@@ -1128,6 +1132,12 @@ int gatePvData::put(const gdd & dd, class gateAsyncW * pWIO )
 				  "for %s:\n"
 				  " %s\n",
 				  timeStamp(),name()?name():"Unknown",ca_message(stat));
+				// No putCB will ever come for this request. Remove and
+				// delete the callback id (fixing an old leak) and break the
+				// two-way link so ~gateAsyncW() does not touch freed memory.
+				callback_list.remove(*cbid);
+				pWIO->clearCallbackId();
+				delete cbid;
 			}
 		} else {
 #if DEBUG_SLIDER
@@ -1371,15 +1381,14 @@ void gatePvData::putCB(EVENT_ARGS args)
 	// We are through with the callback id.  Remove it from the
 	// callback_list and delete it.
 	pv->callback_list.remove(*cbid);
-	gateAsyncW * pWIO = reinterpret_cast < gateAsyncW * >
-				( cbid->getPrivatePtr () );
-	// If pWIO is non-NULL it is still alive (its destructor would have
-	// cleared this pointer otherwise); break the back-link before deleting
-	// cbid so ~gateAsyncW() cannot touch this freed callback id later.
-	if (pWIO) pWIO->clearCallbackId();
+	gateAsyncW * pWIO = cbid->getPrivatePtr ();
 	delete cbid;
 
+	// If pWIO is non-NULL it is still alive (its destructor would have
+	// cleared this pointer otherwise); break the back-link now that cbid is
+	// gone so ~gateAsyncW() cannot touch the freed callback id later.
 	if (!pWIO) return;
+	pWIO->clearCallbackId();
 	// Check if the originating vc is still around.
 	if(!pv->vc || pv->vc->getVcID() != vcid) return;
 
