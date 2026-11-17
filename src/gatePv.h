@@ -85,7 +85,19 @@ class gatePvCallbackId : public tsDLNode<gatePvCallbackId>
 public:
 	gatePvCallbackId(unsigned long idIn,
 	    gatePvData *pvIn, gateAsyncW * pPrivateIn=0 ) :
-	id(idIn),pv(pvIn),pPrivate(pPrivateIn) {};
+	id(idIn),pv(pvIn),pPrivate(pPrivateIn)
+	{
+		// Establish the two-way link: if the gateAsyncW is destroyed
+		// first (server-side client disconnect), its destructor clears
+		// pPrivate, so putCB() never dereferences a dangling pointer.
+		if (pPrivate) pPrivate->setCallbackId(this);
+	}
+	~gatePvCallbackId()
+	{
+		// Break the two-way link so a still-alive gateAsyncW does not
+		// touch this callback id after it has been deleted.
+		if (pPrivate) pPrivate->clearCallbackId();
+	}
 	unsigned long getID(void) const { return id; }
 	gatePvData *getPV(void) const { return pv; }
 	gateAsyncW * getPrivatePtr () const { return pPrivate; }
@@ -97,6 +109,9 @@ private:
 	unsigned long id;
 	gatePvData *pv;
 	gateAsyncW * pPrivate;
+	// Not copyable: the gateAsyncW back-link points to exactly one object
+	gatePvCallbackId(const gatePvCallbackId &);
+	gatePvCallbackId & operator=(const gatePvCallbackId &);
 };
 
 // This class is used to manage one process variable (channel) on the
