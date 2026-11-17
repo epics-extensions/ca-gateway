@@ -52,7 +52,7 @@
   #include <caPutLog.h>
   #include <caPutLogTask.h>
   #include <caPutLogAs.h>
-  #if EPICS_VERSION >= 7
+  #ifdef WITH_CAPUTLOG_JSON
     #include <caPutJsonLogTask.h>
   #endif
   #ifdef HAS_caPutLogInit_arg3timeout
@@ -202,6 +202,70 @@ static int gddToVALUE(const gdd *gddVal, short dbfld_dbrtype, VALUE *valueStruct
    return(0);
 }
 
+#ifdef WITH_CAPUTLOG_JSON
+/*
+ * gddArrayToVALUE(): fill a VALUE with (the beginning of) a gdd's data,
+ * as caPutLog does for array fields on an IOC.
+ * Scalars are handled as arrays with one element.
+ * The number of elements stored in the VALUE (limited by its size)
+ * is returned in *log_size; the return value is the number of
+ * elements in the gdd.
+ */
+static int gddArrayToVALUE(const gdd *gddVal, short dbfld_dbrtype, VALUE *valueStruct, int *log_size)
+{
+    if (gddVal->dimension() == 0) {
+        gddToVALUE(gddVal, dbfld_dbrtype, valueStruct);
+        *log_size = 1;
+        return 1;
+    }
+
+    memset(valueStruct, 0, sizeof(VALUE));
+    size_t count = gddVal->getDataSizeElements();
+    size_t max = caPutLogMaxArraySize(dbfld_dbrtype);
+    // DBR_CHAR arrays are logged as a string: keep the terminating NUL
+    if (dbfld_dbrtype == DBFLD::D_CHAR && max > 0) max--;
+    size_t n = count < max ? count : max;
+    const void *data = gddVal->dataPointer();
+    if (!data) n = 0;
+
+    if (n == 0) {
+        // nothing to copy
+    } else if (dbfld_dbrtype == DBFLD::D_CHAR) {
+        memcpy(valueStruct->a_int8, data, n * sizeof(valueStruct->a_int8[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_UCHAR) {
+        memcpy(valueStruct->a_uint8, data, n * sizeof(valueStruct->a_uint8[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_SHORT) {
+        memcpy(valueStruct->a_int16, data, n * sizeof(valueStruct->a_int16[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_USHORT) {
+        memcpy(valueStruct->a_uint16, data, n * sizeof(valueStruct->a_uint16[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_LONG) {
+        memcpy(valueStruct->a_int32, data, n * sizeof(valueStruct->a_int32[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_ULONG) {
+        memcpy(valueStruct->a_uint32, data, n * sizeof(valueStruct->a_uint32[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_FLOAT) {
+        memcpy(valueStruct->a_float, data, n * sizeof(valueStruct->a_float[0]));
+    } else if (dbfld_dbrtype == DBFLD::D_DOUBLE) {
+        memcpy(valueStruct->a_double, data, n * sizeof(valueStruct->a_double[0]));
+    } else if (gddVal->primitiveType() == aitEnumFixedString) {
+        const aitFixedString *str = static_cast<const aitFixedString *>(data);
+        for (size_t i = 0; i < n; i++) {
+            strncpy(valueStruct->a_string[i], str[i].fixed_string, MAX_STRING_SIZE - 1);
+        }
+    } else if (gddVal->primitiveType() == aitEnumString) {
+        const aitString *str = static_cast<const aitString *>(data);
+        for (size_t i = 0; i < n; i++) {
+            if (str[i].string())
+                strncpy(valueStruct->a_string[i], str[i].string(), MAX_STRING_SIZE - 1);
+        }
+    } else {
+        // unsupported type: log no elements
+        n = 0;
+    }
+    *log_size = static_cast<int>(n);
+    return static_cast<int>(count);
+}
+#endif /* WITH_CAPUTLOG_JSON */
+
 /*
  * VALUE_to_string(): convert VALUE to string
  */
@@ -329,6 +393,7 @@ gateResources::gateResources(void)
 	putlog_file=NULL;
 #ifdef WITH_CAPUTLOG
     caputlog_address=NULL;
+    caputlog_json=false;
 #endif
 	putlogFp=NULL;
 	report_file=strDup(GATE_REPORT_FILE);
@@ -420,14 +485,29 @@ int gateResources::setCaPutlogAddress(const char* address)
 
 int gateResources::caPutLog_Init(void)
 {
-  if (caputlog_address) {
-    return caPutLogINIT(caputlog_address, caPutLogAll);
+  if (!caputlog_address) return 1;
+#ifdef WITH_CAPUTLOG_JSON
+  if (caputlog_json) {
+    CaPutJsonLogTask *logger = CaPutJsonLogTask::getInstance();
+    if (!logger) {
+      fprintf(stderr, "%s Cannot create the caPutLog JSON logger\n", timeStamp());
+      return 1;
+    }
+    return logger->initialize(caputlog_address, caPutJsonLogAll, 0.0);
   }
-  return 1;
+#endif
+  return caPutLogINIT(caputlog_address, caPutLogAll);
 }
 
 void gateResources::caPutLog_Term(void)
 {
+#ifdef WITH_CAPUTLOG_JSON
+  if (caputlog_json) {
+    CaPutJsonLogTask *logger = CaPutJsonLogTask::getInstance();
+    if (logger) logger->stop();
+    return;
+  }
+#endif
   caPutLogTaskStop();
 }
 
@@ -446,20 +526,47 @@ void gateResources::caPutLog_Send
     errlogPrintf("gateResources::caPutLogSend: memory allocation failed\n");
     return;
   }
-  strcpy(pdata->userid,user);
-  strcpy(pdata->hostid,host);
-  strcpy(pdata->pv_name,pvname);
+  epicsSnprintf(pdata->userid, sizeof(pdata->userid), "%s", user);
+  epicsSnprintf(pdata->hostid, sizeof(pdata->hostid), "%s", host);
+  epicsSnprintf(pdata->pv_name, sizeof(pdata->pv_name), "%s", pvname);
+  // used by caPutLog to detect consecutive puts to the same channel
   pdata->pfield = (void *) pvname;
   pdata->type = gddGetOurType(new_value);
-  gddToVALUE(new_value,pdata->type,&pdata->new_value.value);
   new_value->getTimeStamp(&pdata->new_value.time);
-  if ((old_value) && (old_value->primitiveType() != aitEnumInvalid) && (gddGetOurType(old_value) == pdata->type)) {
+
+  bool use_old = (old_value) && (old_value->primitiveType() != aitEnumInvalid)
+                 && (gddGetOurType(old_value) == pdata->type);
+
+#ifdef WITH_CAPUTLOG_JSON
+  // Arrays (also used for scalars, which are arrays with one element)
+  pdata->is_array = new_value->dimension() > 0 || (use_old && old_value->dimension() > 0);
+  pdata->new_size = gddArrayToVALUE(new_value, pdata->type, &pdata->new_value.value,
+                                    &pdata->new_log_size);
+  if (use_old) {
+    pdata->old_size = gddArrayToVALUE(old_value, pdata->type, &pdata->old_value,
+                                      &pdata->old_log_size);
+  } else {
+    // if no usable old_value provided, fill in data.old_value with copy of new value
+    // as there's no way to flag a VALUE struct as invalid
+    memcpy(&pdata->old_value, &pdata->new_value.value, sizeof(VALUE));
+    pdata->old_size = pdata->new_size;
+    pdata->old_log_size = pdata->new_log_size;
+  }
+
+  if (caputlog_json) {
+    CaPutJsonLogTask::getInstance()->addPutToQueue(pdata);
+    return;
+  }
+#else
+  gddToVALUE(new_value,pdata->type,&pdata->new_value.value);
+  if (use_old) {
     gddToVALUE(old_value,pdata->type,&pdata->old_value);
   } else {
     // if no usable old_value provided, fill in data.old_value with copy of new value
     // as there's no way to flag a VALUE struct as invalid
     memcpy(&pdata->old_value,&pdata->new_value.value,sizeof(VALUE));
   }
+#endif
   caPutLogTaskSend(pdata);
 }
 
