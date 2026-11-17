@@ -6,6 +6,9 @@ CA Gateway Release Notes
 
 * Fix some compiler warnings
 * Ensure that ASL defaults to 1
+* Fix `-uid`/`-gid`: the group id was not changed when `-uid` came first
+  on the command line, leaving the gateway running with group root.
+  Supplementary groups are now dropped, and failures abort the start-up.
 
 ## 2.1.3 (15 Dec 2021)
 [View diff](https://github.com/epics-extensions/ca-gateway/compare/R2-1-2-0...R2-1-3-0)

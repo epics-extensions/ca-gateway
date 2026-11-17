@@ -38,6 +38,9 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef _WIN32
+#include <grp.h>
+#endif
 #include <errno.h>
 
 #ifdef _WIN32
@@ -684,8 +687,10 @@ static int startEverything(char *prefix)
 int main(int argc, char** argv)
 {
 #ifndef _WIN32
-	uid_t uid;
-	gid_t gid;
+	uid_t uid=0;
+	gid_t gid=0;
+	int have_uid=0;
+	int have_gid=0;
 #endif
 	int i,j,k;
 	int not_done=1;
@@ -789,12 +794,14 @@ int main(int argc, char** argv)
 					else {
 						if(argv[i][0]=='-') no_error=0;
 						else {
-							if(sscanf(argv[i],"%d",(int *)&uid)<1) {
+							int id;
+							if(sscanf(argv[i],"%d",&id)<1 || id<0) {
 								fprintf(stderr,"\nBad value %s for %s\n",
 								  argv[i],ptable[j].parm);
 								no_error=0;
 							} else {
-								setuid(uid);
+								uid=(uid_t)id;
+								have_uid=1;
 								not_done=0;
 							}
 						}
@@ -807,12 +814,14 @@ int main(int argc, char** argv)
 					else {
 						if(argv[i][0]=='-') no_error=0;
 						else {
-							if(sscanf(argv[i],"%d",(int *)&gid)<1) {
+							int id;
+							if(sscanf(argv[i],"%d",&id)<1 || id<0) {
 								fprintf(stderr,"\nBad value %s for %s\n",
 								  argv[i],ptable[j].parm);
 								no_error=0;
 							} else {
-								setgid(gid);
+								gid=(gid_t)id;
+								have_gid=1;
 								not_done=0;
 							}
 						}
@@ -1121,6 +1130,30 @@ int main(int argc, char** argv)
 		  "files exist in home)\n");
 		return -1;
 	}
+
+#ifndef _WIN32
+	// Drop privileges. The group must be changed first: once the user id
+	// is no longer root, the process is not allowed to change its group.
+	if(have_gid || have_uid) {
+		if(geteuid()==0) {
+			// Drop supplementary groups (e.g. root's) while still privileged
+			if(setgroups(have_gid?1:0,&gid)<0) {
+				perror("setgroups failed");
+				return -1;
+			}
+		}
+		if(have_gid && setgid(gid)<0) {
+			fprintf(stderr,"Cannot set group id to %ld: %s\n",
+			  (long)gid,strerror(errno));
+			return -1;
+		}
+		if(have_uid && setuid(uid)<0) {
+			fprintf(stderr,"Cannot set user id to %ld: %s\n",
+			  (long)uid,strerror(errno));
+			return -1;
+		}
+	}
+#endif
 
 	// Change to the specified home directory
 	if(home_dir)
