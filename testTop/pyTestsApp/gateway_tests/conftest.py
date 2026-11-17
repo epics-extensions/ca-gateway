@@ -203,41 +203,20 @@ def run_ioc(
         yield proc
 
 
-@contextlib.contextmanager
-def run_gateway(
+def gateway_command(
     *extra_args: str,
     access: str = config.default_access,
     pvlist: str = config.default_pvlist,
+    cip: str = "localhost",
     ioc_port: int = config.default_ioc_port,
     gateway_port: int = config.default_gateway_port,
     verbose: bool = config.verbose_gateway,
     stats_prefix: str = "gwtest",
-) -> Generator[subprocess.Popen, None, None]:
+) -> List[str]:
     """
-    Starts a gateway process with the provided configuration.
+    Build the command line for a gateway process.
 
-    Parameters
-    ----------
-    *extra_args : str
-        Extra arguments to pass to the gateway process.
-
-    access : str, optional
-        The access rights file.  Defaults to ``default_access``.
-
-    pvlist : str, optional
-        The pvlist filename.  Defaults to ``default_pvlist``.
-
-    ioc_port : int, optional
-        The IOC port number - defaults to ``default_ioc_port``.
-
-    gateway_port : int, optional
-        The gateway port number - defaults to ``default_gateway_port``.
-
-    verbose : bool, optional
-        Configure the gateway to output verbose information.
-
-    stats_prefix : str, optional
-        Gateway statistics PV prefix.
+    See ``run_gateway`` for the parameters.
     """
     cmd = [
         config.gateway_executable,
@@ -246,7 +225,7 @@ def run_gateway(
         "-sport",
         str(gateway_port),
         "-cip",
-        "localhost",
+        cip,
         "-cport",
         str(ioc_port),
         "-access",
@@ -261,18 +240,132 @@ def run_gateway(
 
     if verbose:
         cmd.extend(["-debug", str(config.gateway_debug_level)])
+    return cmd
+
+
+def sudo_available() -> bool:
+    """Can processes be started as root (via passwordless sudo)?"""
+    try:
+        return (
+            subprocess.run(
+                ["sudo", "-n", "true"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+            ).returncode
+            == 0
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def _as_root(cmd: List[str], pid_file: str) -> List[str]:
+    """
+    Wrap ``cmd`` to run as root via passwordless sudo.
+
+    sudo sanitizes the environment, so the EPICS settings are passed
+    explicitly. The PID of the actual process is written to ``pid_file``.
+    sudo relays SIGTERM, so the process can be terminated as usual.
+    """
+    env = [
+        f"{key}={value}"
+        for key, value in os.environ.items()
+        if key.startswith("EPICS_") or key == "LD_LIBRARY_PATH"
+    ]
+    return [
+        "sudo", "-n", "sh", "-c", 'echo $$ > "$0"; exec "$@"', pid_file,
+        "env", *env, *cmd,
+    ]
+
+
+@contextlib.contextmanager
+def run_gateway(
+    *extra_args: str,
+    access: str = config.default_access,
+    pvlist: str = config.default_pvlist,
+    cip: str = "localhost",
+    ioc_port: int = config.default_ioc_port,
+    gateway_port: int = config.default_gateway_port,
+    verbose: bool = config.verbose_gateway,
+    stats_prefix: str = "gwtest",
+    as_root: bool = False,
+) -> Generator[subprocess.Popen, None, None]:
+    """
+    Starts a gateway process with the provided configuration.
+
+    The PID of the gateway process is available as ``proc.gateway_pid``
+    (it differs from ``proc.pid`` when running as root).
+
+    Parameters
+    ----------
+    *extra_args : str
+        Extra arguments to pass to the gateway process.
+
+    access : str, optional
+        The access rights file.  Defaults to ``default_access``.
+
+    pvlist : str, optional
+        The pvlist filename.  Defaults to ``default_pvlist``.
+
+    cip : str, optional
+        The client side address list (``-cip``).  Defaults to ``localhost``.
+
+    ioc_port : int, optional
+        The IOC port number - defaults to ``default_ioc_port``.
+
+    gateway_port : int, optional
+        The gateway port number - defaults to ``default_gateway_port``.
+
+    verbose : bool, optional
+        Configure the gateway to output verbose information.
+
+    stats_prefix : str, optional
+        Gateway statistics PV prefix.
+
+    as_root : bool, optional
+        Start the gateway as root, using passwordless sudo.
+    """
+    cmd = gateway_command(
+        *extra_args,
+        access=access,
+        pvlist=pvlist,
+        cip=cip,
+        ioc_port=ioc_port,
+        gateway_port=gateway_port,
+        verbose=verbose,
+        stats_prefix=stats_prefix,
+    )
 
     quiescence_period = 1.0 if os.environ.get("BASE", "").startswith("3.14") else 0.0
-    with run_process(
-        cmd,
-        dict(os.environ),
-        verbose=verbose,
-        interactive=False,
-        wait_for=b"Running as user",
-        quiescence_period=quiescence_period,
-        must_survive=True,
-    ) as proc:
-        yield proc
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pid_file = os.path.join(tmpdir, "gateway.pid")
+        if as_root:
+            cmd = _as_root(cmd, pid_file)
+        with run_process(
+            cmd,
+            dict(os.environ),
+            verbose=verbose,
+            interactive=False,
+            wait_for=b"Running as user",
+            quiescence_period=quiescence_period,
+            must_survive=True,
+        ) as proc:
+            if as_root:
+                # The startup wait may time out before sudo has started
+                # the gateway; give it a few more seconds.
+                for _ in range(50):
+                    try:
+                        with open(pid_file) as f:
+                            proc.gateway_pid = int(f.read())
+                        break
+                    except (OSError, ValueError):
+                        time.sleep(0.1)
+                else:
+                    raise RuntimeError("Gateway started with sudo did not report its PID")
+            else:
+                proc.gateway_pid = proc.pid
+            yield proc
 
 
 @contextlib.contextmanager

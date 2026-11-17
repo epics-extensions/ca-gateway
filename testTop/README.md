@@ -50,6 +50,13 @@ There are two main ways to run the tests:
    You might have to set `EPICS_BASE`, `EPICS_HOST_ARCH` and `TOP` (to find the
    gateway executable under test and the CA libraries).
 
+### Tests Needing Root
+
+The tests for the `-uid` and `-gid` options in `test_uid_gid.py` that
+actually drop privileges start the gateway as root, using passwordless
+`sudo -n`. They are skipped if that is not available, when the tests run
+as root, or on systems other than Linux.
+
 ### Environment Variables
 `VERBOSE`          - `YES` to make tests more verbose</br>
 `VERBOSE_GATEWAY`  - `YES` to run the gateway with default debuglevel 10,
