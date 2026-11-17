@@ -73,6 +73,11 @@ ifdef CAPUTLOG
   USR_LIBS += caPutLog $(EPICS_BASE_IOC_LIBS)
   USR_CXXFLAGS += -DWITH_CAPUTLOG
   USR_CFLAGS += -DWITH_CAPUTLOG
+  # JSON format (and array) support, if caPutLog provides it
+  ifneq ($(wildcard $(CAPUTLOG)/include/caPutJsonLogTask.h),)
+    USR_CXXFLAGS += -DWITH_CAPUTLOG_JSON
+    USR_CFLAGS += -DWITH_CAPUTLOG_JSON
+  endif
 endif
 
 PROD_HOST = gateway

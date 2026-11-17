@@ -26,6 +26,8 @@ EPICS 7 (>= 3.16).
 If you compile the CA Gateway with
 [caPutLog](https://github.com/epics-modules/caPutLog) support,
 a caPutLog version >= 3.5 is required.
+The `-caputlogjson` option (JSON format) is available if the caPutLog
+module provides JSON support (`caPutJsonLogTask.h`).
 
 ## Continuous Integration and Static Code Analysis
 

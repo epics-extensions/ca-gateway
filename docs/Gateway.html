@@ -315,6 +315,19 @@ later.
         mode and it restarts.</td>
     </tr>
     <tr>
+      <td>-caputlog &lt;ip_addr:port&gt;</td>
+      <td>Address of a <a href="https://github.com/epics-modules/caPutLog">caPutLog</a>
+        log server that put logging is sent to, in caPutLog's plain text
+        format. Only available if the Gateway was built with caPutLog support.
+        See <a href="#PutLogging">Put Logging</a> below.</td>
+    </tr>
+    <tr>
+      <td>-caputlogjson &lt;ip_addr:port&gt;</td>
+      <td>Same as -caputlog, but using caPutLog's JSON format, which also
+        logs array values. Only available if the caPutLog module used for
+        building the Gateway supports the JSON format.</td>
+    </tr>
+    <tr>
       <td>-report &lt;filename&gt;</td>
       <td>Name of the file where <a href="#Report">reports</a> go. The
         reports are appended if the file exists when the reports are
@@ -764,6 +777,15 @@ be found in the<a href="GATEWAY.access"> sample access file</a>, where writes
 are logged for process variables that belong to the GatewayAdmin group. Using
 the <a href="GATEWAY.pvlist">sample pvlist file</a>, these would be those
 that fit the pattern "gateway:*Flag".</p>
+
+<p>If the Gateway was built with
+<a href="https://github.com/epics-modules/caPutLog">caPutLog</a> support,
+puts selected by TRAPWRITE can also be sent to a caPutLog log server, using
+-caputlog (plain text format) or -caputlogjson (JSON format) on the command
+line. In JSON format, array values are logged as JSON arrays together with
+their sizes. As on an IOC, the number of logged array elements is limited
+by caPutLog's buffer size, and consecutive puts to the same process variable
+within caPutLog's burst timeout are combined into one message.</p>
 
 <h2><a name="BeaconAnomalies">Beacon Anomalies and Search Requests</a></h2>
 
